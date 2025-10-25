@@ -1,0 +1,401 @@
+/* style.css - Pełny kod z ulepszonym wyglądem dymków i funkcjonalnością */
+
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap");
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+:root {
+  /* Motyw Ciemny */
+  --text-color: #edf3ff;
+  --subheading-color: #97a7ca;
+  --placeholder-color: #c3cdde;
+  --primary-color: #101623;
+  --secondary-color: #283045; /* Tło wiadomości użytkownika */
+  --secondary-hover-color: #333e58; /* Tło wiadomości bota */
+  --scrollbar-color: #626a7f;
+  --accent-color: #00bfff;
+  --app-header-bg: #101623;
+  --chat-bg: #151b24;
+}
+
+/* Motyw Jasny - Nadpisanie zmiennych */
+body.light-mode {
+  --text-color: #1a202c;
+  --subheading-color: #4a5568;
+  --placeholder-color: #a0aec0;
+  --primary-color: #ffffff;
+  --secondary-color: #f7fafc;
+  --secondary-hover-color: #edf2f7;
+  --scrollbar-color: #cbd5e0;
+  --accent-color: #007bff;
+  --app-header-bg: #ffffff;
+  --chat-bg: #ffffff;
+}
+
+body {
+  color: var(--text-color);
+  background: var(--primary-color);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+.container {
+  /* FIX SCROLLOWANIA: Zwiększony dolny padding, aby dymki nie zasłaniały paska promptu */
+  padding: 32px 0 160px;
+}
+
+/* Globalne marginesy i paddingi */
+.container
+  :where(
+    .app-header,
+    .suggestions,
+    .prompt-wrapper .message,
+    .prompt-container .disclaimer-text,
+    .chats-container
+  ) {
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 20px;
+  max-width: 980px;
+}
+
+/* Nagłówek i Sugestie */
+.container .app-header {
+  display: none;
+  margin-top: 4vh;
+}
+.app-header .heading {
+  font-size: 3rem;
+  width: fit-content;
+  background: linear-gradient(to right, #1d7efd, #8f6fff);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.app-header .sub-heading {
+  font-size: 2.6rem;
+  color: var(--subheading-color);
+  margin-top: -5px;
+}
+.container .suggestions {
+  display: flex;
+  gap: 15px;
+  margin-top: 9.5vh;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.container :is(.app-header, .suggestions) {
+  display: none;
+}
+.suggestions .suggestions-item {
+  width: 228px;
+  padding: 18px;
+  flex-shrink: 0;
+  display: flex;
+  cursor: pointer;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  border-radius: 12px;
+  background: var(--secondary-color);
+  transition: 0.3s ease;
+  border: 1px solid var(--secondary-hover-color);
+}
+.suggestions .suggestions-item:hover {
+  background: var(--secondary-hover-color);
+}
+.suggestions .suggestions-item .text {
+  font-size: 1.1rem;
+}
+.suggestions .suggestions-item span {
+  height: 45px;
+  width: 45px;
+  margin-top: 35px;
+  display: flex;
+  align-self: flex-end;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #1d7efd;
+  background: var(--primary-color);
+}
+/* Kolory ikon sugestii (zachowane) */
+.suggestions .suggestions-item:nth-child(2) span {
+  color: #28a745;
+}
+.suggestions .suggestions-item:nth-child(3) span {
+  color: #ffc107;
+}
+.suggestions .suggestions-item:nth-child(4) span {
+  color: #6f42c1;
+}
+
+/* Kontener Czatów */
+.container .chats-container {
+  display: flex;
+  gap: 20px;
+  flex-direction: column;
+  padding-top: 20px;
+}
+
+/* Wyrównanie wiadomości do góry */
+.chats-container .message {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+}
+
+.chats-container .bot-message.loading .avatar {
+  animation: rotate 3s linear infinite;
+}
+@keyframes rotate {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.chats-container .bot-message .avatar {
+  height: 43px;
+  width: 43px;
+  flex-shrink: 0;
+  padding: 6px;
+  align-self: flex-start;
+  margin-right: 0;
+  border-radius: 50%;
+  background: var(--secondary-color);
+  border: 1px solid var(--secondary-hover-color);
+  color: var(--accent-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+/* Właściwe style wiadomości użytkownika - ULEPSZONY WYGLĄD */
+.chats-container .user-message {
+  flex-direction: column;
+  align-items: flex-end;
+}
+.chats-container .user-message .message-text {
+  padding: 12px 16px;
+  max-width: 75%;
+  /* NOWY DESIGN: Większe zaokrąglenie, zachowany ostry róg na dole po prawej */
+  border-radius: 18px 18px 3px 18px;
+
+  background: var(--secondary-color);
+  color: var(--text-color);
+
+  /* DODANE: Delikatny cień */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.chats-container .user-message img {
+  max-width: 100%;
+  max-height: 250px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Właściwe style wiadomości bota - ULEPSZONY WYGLĄD I TEKST */
+.chats-container .bot-message {
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 10px 0;
+  width: 100%;
+}
+.chats-container .bot-message .message-text {
+  max-width: 90%;
+  word-wrap: break-word;
+  white-space: normal;
+  line-height: 1.6;
+  text-align: left;
+
+  background: var(--secondary-hover-color);
+  /* NOWY DESIGN: Większe zaokrąglenie, zachowany ostry róg na dole po lewej */
+  border-radius: 18px 18px 18px 3px;
+
+  /* KLUCZOWA ZMIANA: Dodajemy padding w dymku, aby tekst nie przyklejał się do krawędzi */
+  padding: 12px 16px;
+
+  margin-left: 0;
+  width: fit-content;
+  display: block;
+
+  /* DODANE: Delikatny cień */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Formatowanie Markdown wewnątrz dymka */
+
+/* KOREKTA: Zerujemy marginesy akapitów, by nie tworzyły dodatkowego paddingu wewnątrz dymku */
+.chats-container .bot-message .message-text p {
+  margin: 0;
+  padding: 0;
+}
+
+.chats-container .bot-message code {
+  background-color: var(--secondary-hover-color);
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-family: "Consolas", monospace;
+  font-size: 0.95em;
+  color: var(--accent-color);
+}
+/* Poprawki dla bloków kodu */
+.chats-container .bot-message pre {
+  background-color: var(--secondary-hover-color);
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px 0; /* Marginalny margines 0 po bokach, by nie wychodziły poza padding dymka */
+  overflow-x: auto;
+  border-left: 3px solid var(--accent-color);
+  display: block;
+  width: auto;
+  box-sizing: border-box;
+}
+.chats-container .bot-message pre code {
+  background: none;
+  padding: 0;
+  color: var(--text-color);
+  white-space: pre-wrap;
+}
+
+/* Listy */
+.chats-container .bot-message ul,
+.chats-container .bot-message ol {
+  /* Ustaw marginesy dla list wewnątrz dymku */
+  margin: 10px 0 10px 16px;
+  padding: 0 16px;
+}
+.chats-container .bot-message li {
+  margin-bottom: 5px;
+}
+
+/* Nagłówki (dla wyróżnienia) */
+.chats-container .bot-message h3 {
+  color: var(--accent-color);
+  /* Ustaw marginesy dla nagłówków */
+  margin: 15px 0 10px 0;
+  border-bottom: 1px dashed var(--secondary-hover-color);
+  padding: 0 16px 5px 16px;
+  font-weight: 600;
+}
+
+/* Kropki ładowania */
+@keyframes typing-dots {
+  0% {
+    content: "";
+  }
+  33% {
+    content: ".";
+  }
+  66% {
+    content: "..";
+  }
+  100% {
+    content: "...";
+  }
+}
+.chats-container .bot-message.loading .message-text::after {
+  content: "...";
+  display: inline-block;
+  width: 20px;
+  animation: typing-dots 1s steps(1, start) infinite;
+}
+
+/* Prompt Container Styling */
+.prompt-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 16px 0;
+  background: var(--app-header-bg);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.prompt-container :where(.prompt-wrapper, .prompt-form, .prompt-actions) {
+  display: flex;
+  gap: 12px;
+  height: 56px;
+  align-items: center;
+}
+
+.prompt-wrapper .prompt-form {
+  width: 100%;
+  height: 100%;
+  border-radius: 130px;
+  background: var(--secondary-color);
+  border: 1px solid var(--secondary-hover-color);
+}
+
+.prompt-form .prompt-input {
+  width: 100%;
+  height: 100%;
+  background: none;
+  outline: none;
+  border: none;
+  font-size: 1rem;
+  padding-left: 24px;
+  color: var(--text-color);
+}
+
+.prompt-form .prompt-input::placeholder {
+  color: var(--placeholder-color);
+}
+
+.prompt-wrapper button {
+  width: 56px;
+  height: 100%;
+  border: none;
+  cursor: pointer;
+  border-radius: 50%;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+  background: var(--secondary-color);
+  color: var(--text-color);
+  transition: 0.3s ease;
+}
+
+.prompt-wrapper button:hover {
+  background: var(--secondary-hover-color);
+}
+
+.prompt-form .prompt-actions {
+  gap: 5px;
+  margin-right: 7px;
+}
+.prompt-form .prompt-actions button {
+  height: 45px;
+  width: 45px;
+}
+
+.prompt-form #send-prompt-btn {
+  color: #fff;
+  display: none;
+  background: var(--accent-color);
+}
+.prompt-form .prompt-input:valid ~ .prompt-actions #send-prompt-btn {
+  display: block;
+}
+.prompt-form #send-prompt-btn:hover {
+  background: #0264e3;
+}
+
+#theme-toggle-btn {
+  /* Specjalny przycisk motywu */
+  color: var(--accent-color);
+}
+
+.prompt-container .disclaimer-text {
+  text-align: center;
+  font-size: 0.9rem;
+  padding: 16px 20px 0;
+  color: var(--placeholder-color);
+}
