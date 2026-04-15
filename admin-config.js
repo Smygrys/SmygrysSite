@@ -4,12 +4,12 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/12.12.0/firebas
 
 // ⚠️ SAME CONFIG AS IN config.js
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:xxxxxxxx"
+  apiKey: "AIzaSyBINzCHZw_VBSb1IDRhAdYdTe2kLtahPzg",
+  authDomain: "trash-ae577.firebaseapp.com",
+  projectId: "trash-ae577",
+  storageBucket: "trash-ae577.firebasestorage.app",
+  messagingSenderId: "369181453208",
+  appId: "1:369181453208:web:c0635d99d85b53d08b59ed",
 };
 
 const app = initializeApp(firebaseConfig);
