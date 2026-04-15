@@ -1,10 +1,5 @@
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// ================== FIREBASE CONFIG ==================
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+import { getFirestore, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBINzCHZw_VBSb1IDRhAdYdTe2kLtahPzg",
@@ -15,5 +10,25 @@ const firebaseConfig = {
   appId: "1:369181453208:web:c0635d99d85b53d08b59ed",
 };
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+let app;
+let db;
+
+try {
+  app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+
+  // Enable offline persistence
+  enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code === "failed-precondition") {
+      console.log("Multiple tabs open, persistence disabled");
+    } else if (err.code === "unimplemented") {
+      console.log("Persistence not supported");
+    }
+  });
+
+  console.log("✅ Firebase initialized successfully");
+} catch (error) {
+  console.error("❌ Firebase initialization error:", error);
+}
+
+export { db };

@@ -19,16 +19,16 @@ window.appState = {
   myName: "",
   currentLanguage: "en",
   currentSchedule: {},
-  unsubscribers: []
+  unsubscribers: [],
+  loading: false
 };
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-const ALL_DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 const translations = {
-  en: { appTitle: "Trash Rotation", membersTitle: "Members", todayLabel: "TODAY'S TURN", weekTitle: "This Week", proposalsTitle: "Pending Changes", historyTitle: "History", markDoneBtn: "Done ✓", noProposals: "No pending changes", votesNeeded: "votes needed", voted: "Voted ✓", iAgree: "I Agree", change: "Change" },
-  pl: { appTitle: "Rotacja Śmieci", membersTitle: "Członkowie", todayLabel: "DZISIAJ", weekTitle: "Ten Tydzień", proposalsTitle: "Oczekujące Zmiany", historyTitle: "Historia", markDoneBtn: "Zrobione ✓", noProposals: "Brak oczekujących zmian", votesNeeded: "głosów potrzebnych", voted: "Zagłosowałem ✓", iAgree: "Zgadzam się", change: "Zmień" },
-  uk: { appTitle: "Ротація Сміття", membersTitle: "Учасники", todayLabel: "СЬОГОДНІ", weekTitle: "Цей Тиждень", proposalsTitle: "Очікуючі Зміни", historyTitle: "Історія", markDoneBtn: "Виконано ✓", noProposals: "Немає очікуючих змін", votesNeeded: "голосів потрібно", voted: "Проголосував ✓", iAgree: "Я згідний", change: "Змінити" }
+  en: { appTitle: "Trash Rotation", membersTitle: "Members", todayLabel: "TODAY'S TURN", weekTitle: "This Week", proposalsTitle: "Pending Changes", historyTitle: "History", markDoneBtn: "Done ✓", noProposals: "No pending changes", votesNeeded: "votes needed", voted: "Voted ✓", iAgree: "I Agree", change: "Change", selectDays: "Select days to continue" },
+  pl: { appTitle: "Rotacja Śmieci", membersTitle: "Członkowie", todayLabel: "DZISIAJ", weekTitle: "Ten Tydzień", proposalsTitle: "Oczekujące Zmiany", historyTitle: "Historia", markDoneBtn: "Zrobione ✓", noProposals: "Brak oczekujących zmian", votesNeeded: "głosów potrzebnych", voted: "Zagłosowałem ✓", iAgree: "Zgadzam się", change: "Zmień", selectDays: "Wybierz dni aby kontynuować" },
+  uk: { appTitle: "Ротація Сміття", membersTitle: "Учасники", todayLabel: "СЬОГОДНІ", weekTitle: "Цей Тиждень", proposalsTitle: "Очікуючі Зміни", historyTitle: "Історія", markDoneBtn: "Виконано ✓", noProposals: "Немає очікуючих змін", votesNeeded: "голосів потрібно", voted: "Проголосував ✓", iAgree: "Я згідний", change: "Змінити", selectDays: "Виберіть дні для продовження" }
 };
 
 function t(key) {
@@ -37,7 +37,6 @@ function t(key) {
 
 function updateTexts() {
   document.getElementById("title").textContent = "🗑️ " + t("appTitle");
-  document.querySelector(".section-title").textContent = t("membersTitle");
 }
 
 function showWelcomeModal() {
@@ -53,13 +52,15 @@ function showMainApp() {
   document.getElementById("mainApp").classList.remove("hidden");
 }
 
-// ========== JOIN NOW ==========
+// ========== JOIN NOW (FIXED) ==========
 window.joinNow = async () => {
+  if (window.appState.loading) return;
+
   const name = document.getElementById("nameInput").value.trim();
   const lang = document.getElementById("langSelect").value;
 
   if (!name) {
-    alert("Enter your name");
+    alert("❌ Please enter your name");
     return;
   }
 
@@ -67,35 +68,58 @@ window.joinNow = async () => {
   const days = Array.from(dayCheckboxes).map(cb => cb.value);
 
   if (days.length === 0) {
-    alert("Select at least one day");
+    alert("❌ " + t("selectDays"));
     return;
   }
 
-  window.appState.myName = name;
-  window.appState.currentLanguage = lang;
-
-  localStorage.setItem("myName", name);
-  localStorage.setItem("language", lang);
+  window.appState.loading = true;
+  console.log("🚀 Joining with name:", name, "days:", days);
 
   try {
+    window.appState.myName = name;
+    window.appState.currentLanguage = lang;
+
+    localStorage.setItem("myName", name);
+    localStorage.setItem("language", lang);
+
     const configRef = doc(db, "appSettings", "config");
+    
+    // First, try to get existing config
     const configDoc = await getDoc(configRef);
+    
+    let members = {};
+    if (configDoc.exists()) {
+      members = configDoc.data().members || {};
+    }
 
-    const members = configDoc.exists() ? (configDoc.data().members || {}) : {};
-    members[name] = { days: days, joinedAt: serverTimestamp() };
+    // Add this new member
+    members[name] = {
+      days: days,
+      joinedAt: new Date().toISOString()
+    };
 
-    await setDoc(configRef, { members });
+    console.log("📝 Saving members:", members);
+
+    // Save to Firestore
+    await setDoc(configRef, { members }, { merge: true });
+
+    console.log("✅ Member added successfully");
 
     hideWelcomeModal();
     showMainApp();
     updateTexts();
+    
+    // Load data
     loadMembers();
     loadSchedule();
     loadProposals();
     loadHistory();
+
+    window.appState.loading = false;
   } catch (error) {
-    console.error("Error:", error);
-    alert("Error: " + error.message);
+    window.appState.loading = false;
+    console.error("❌ Join error:", error);
+    alert("❌ Error: " + error.message + "\n\nMake sure:\n1. Firebase is configured in config.js\n2. Firestore is enabled\n3. Rules allow read/write");
   }
 };
 
@@ -104,11 +128,15 @@ function loadMembers() {
   const unsubscribe = onSnapshot(
     doc(db, "appSettings", "config"),
     (docSnap) => {
-      window.appState.members = docSnap.exists() ? (docSnap.data().members || {}) : {};
+      if (docSnap.exists()) {
+        window.appState.members = docSnap.data().members || {};
+      }
       renderMembers();
       regenerateSchedule();
     },
-    (error) => console.error("Error loading members:", error)
+    (error) => {
+      console.error("❌ Error loading members:", error);
+    }
   );
   window.appState.unsubscribers.push(unsubscribe);
 }
@@ -120,7 +148,7 @@ function renderMembers() {
   const entries = Object.entries(window.appState.members);
 
   if (entries.length === 0) {
-    container.innerHTML = '<p style="text-align:center;color:#9ca3af;padding:2rem">No members yet</p>';
+    container.innerHTML = '<p style="text-align:center;color:#9ca3af;padding:2rem">No members yet. Be first to join!</p>';
     return;
   }
 
@@ -129,11 +157,13 @@ function renderMembers() {
     const div = document.createElement("div");
     div.className = "member-card";
 
-    const daysHtml = days.map(d => `<span class="day-tag assigned">${d.slice(0,3)}</span>`).join("");
+    const daysHtml = days.length > 0 
+      ? days.map(d => `<span class="day-tag assigned">${d.slice(0,3)}</span>`).join("")
+      : '<span class="day-tag">Random</span>';
 
     div.innerHTML = `
       <div class="member-header">
-        <div class="member-name">${name}</div>
+        <div class="member-name">${name}${name === window.appState.myName ? " (you)" : ""}</div>
         <div class="member-count">#${entries.length}</div>
       </div>
       <div class="member-days">${daysHtml}</div>
@@ -160,16 +190,25 @@ function regenerateSchedule() {
     const dateKey = day.toISOString().split("T")[0];
     const dayName = DAYS[i];
 
-    const preferring = members.filter(([, data]) => data.days && data.days.includes(dayName));
+    // Find members who prefer this day
+    const preferring = members.filter(([, data]) => 
+      data.days && data.days.includes(dayName)
+    );
 
     if (preferring.length > 0) {
-      schedule[dateKey] = preferring[0][0];
+      // Assign to first preferring member (or random if multiple)
+      schedule[dateKey] = preferring[Math.floor(Math.random() * preferring.length)][0];
     } else {
+      // Random from all members
       schedule[dateKey] = members[Math.floor(Math.random() * members.length)][0];
     }
   }
 
-  setDoc(doc(db, "schedules", weekKey), schedule);
+  try {
+    setDoc(doc(db, "schedules", weekKey), schedule);
+  } catch (error) {
+    console.error("Error saving schedule:", error);
+  }
 }
 
 function getMonday(date = new Date()) {
@@ -191,7 +230,7 @@ function loadSchedule() {
       renderToday();
       renderWeek();
     },
-    (error) => console.error("Error:", error)
+    (error) => console.error("❌ Error loading schedule:", error)
   );
   window.appState.unsubscribers.push(unsubscribe);
 }
@@ -240,22 +279,29 @@ window.proposeChange = (dateKey, currentPerson) => {
   const others = memberNames.filter(m => m !== currentPerson);
 
   if (others.length === 0) {
-    alert("No other members");
+    alert("No other members to swap with");
     return;
   }
 
-  const newPerson = prompt(`Change ${currentPerson} to?\n${others.join(" / ")}`, others[0]);
+  const newPerson = prompt(
+    `Change ${currentPerson} to?\n${others.join(" / ")}`,
+    others[0]
+  );
 
   if (!newPerson || !memberNames.includes(newPerson)) return;
 
-  addDoc(collection(db, "proposals"), {
-    dateKey,
-    fromPerson: currentPerson,
-    toPerson: newPerson,
-    votes: [window.appState.myName],
-    createdAt: serverTimestamp(),
-    status: "pending"
-  });
+  try {
+    addDoc(collection(db, "proposals"), {
+      dateKey,
+      fromPerson: currentPerson,
+      toPerson: newPerson,
+      votes: [window.appState.myName],
+      createdAt: serverTimestamp(),
+      status: "pending"
+    });
+  } catch (error) {
+    console.error("❌ Error proposing change:", error);
+  }
 };
 
 function loadProposals() {
@@ -268,7 +314,7 @@ function loadProposals() {
     const pending = snapshot.docs.filter(d => d.data().status === "pending");
 
     if (pending.length === 0) {
-      container.innerHTML = `<p style="text-align:center;color:#9ca3af;padding:2rem">${t("noProposals")}</p>`;
+      container.innerHTML = `<p style="text-align:center;color:#9ca3af;padding:2rem">No pending changes</p>`;
       return;
     }
 
@@ -309,31 +355,39 @@ function loadProposals() {
         applyProposal(docSnap.id, p);
       }
     });
-  });
+  }, (error) => console.error("❌ Error loading proposals:", error));
 
   window.appState.unsubscribers.push(unsubscribe);
 }
 
 window.voteProposal = (proposalId) => {
-  updateDoc(doc(db, "proposals", proposalId), {
-    votes: arrayUnion(window.appState.myName)
-  });
+  try {
+    updateDoc(doc(db, "proposals", proposalId), {
+      votes: arrayUnion(window.appState.myName)
+    });
+  } catch (error) {
+    console.error("❌ Error voting:", error);
+  }
 };
 
 async function applyProposal(proposalId, proposal) {
-  const weekKey = getMonday(new Date(proposal.dateKey)).toISOString().split("T")[0];
-  const scheduleRef = doc(db, "schedules", weekKey);
-  const scheduleDoc = await getDoc(scheduleRef);
+  try {
+    const weekKey = getMonday(new Date(proposal.dateKey)).toISOString().split("T")[0];
+    const scheduleRef = doc(db, "schedules", weekKey);
+    const scheduleDoc = await getDoc(scheduleRef);
 
-  if (scheduleDoc.exists()) {
-    let schedule = scheduleDoc.data();
-    schedule[proposal.dateKey] = proposal.toPerson;
-    await setDoc(scheduleRef, schedule);
+    if (scheduleDoc.exists()) {
+      let schedule = scheduleDoc.data();
+      schedule[proposal.dateKey] = proposal.toPerson;
+      await setDoc(scheduleRef, schedule);
+    }
+
+    await updateDoc(doc(db, "proposals", proposalId), { status: "applied" });
+    renderToday();
+    renderWeek();
+  } catch (error) {
+    console.error("❌ Error applying proposal:", error);
   }
-
-  await updateDoc(doc(db, "proposals", proposalId), { status: "applied" });
-  renderToday();
-  renderWeek();
 }
 
 window.markDone = () => {
@@ -345,14 +399,18 @@ window.markDone = () => {
     return;
   }
 
-  addDoc(collection(db, "history"), {
-    date: serverTimestamp(),
-    person: person,
-    markedBy: window.appState.myName
-  });
+  try {
+    addDoc(collection(db, "history"), {
+      date: serverTimestamp(),
+      person: person,
+      markedBy: window.appState.myName
+    });
 
-  alert("✅ Done!");
-  loadHistory();
+    alert("✅ Done!");
+    loadHistory();
+  } catch (error) {
+    console.error("❌ Error marking done:", error);
+  }
 };
 
 function loadHistory() {
@@ -380,7 +438,7 @@ function loadHistory() {
         return `<div class="history-item"><div class="history-person">${data.person}</div><div class="history-date">${date.toLocaleDateString()}</div></div>`;
       })
       .join("");
-  });
+  }, (error) => console.error("❌ Error loading history:", error));
 
   window.appState.unsubscribers.push(unsubscribe);
 }
@@ -388,19 +446,18 @@ function loadHistory() {
 window.switchTab = (tab) => {
   const contentHome = document.getElementById("contentHome");
   const contentHistory = document.getElementById("contentHistory");
-  const tabHome = document.querySelectorAll(".nav-btn")[0];
-  const tabHistory = document.querySelectorAll(".nav-btn")[1];
+  const btns = document.querySelectorAll(".nav-btn");
 
   if (tab === "home") {
     contentHome.classList.remove("hidden");
     contentHistory.classList.add("hidden");
-    tabHome.classList.add("active");
-    tabHistory.classList.remove("active");
+    btns[0].classList.add("active");
+    btns[1].classList.remove("active");
   } else {
     contentHome.classList.add("hidden");
     contentHistory.classList.remove("hidden");
-    tabHome.classList.remove("active");
-    tabHistory.classList.add("active");
+    btns[0].classList.remove("active");
+    btns[1].classList.add("active");
     loadHistory();
   }
 };
@@ -415,11 +472,13 @@ async function initializeApp() {
   try {
     const configDoc = await getDoc(doc(db, "appSettings", "config"));
     window.appState.members = configDoc.exists() ? (configDoc.data().members || {}) : {};
+    console.log("✅ Loaded members:", window.appState.members);
   } catch (error) {
-    console.error("Error:", error);
+    console.error("❌ Error initializing:", error);
   }
 
   if (savedName && window.appState.members[savedName]) {
+    console.log("🔓 User already joined:", savedName);
     window.appState.myName = savedName;
     hideWelcomeModal();
     showMainApp();
@@ -428,6 +487,7 @@ async function initializeApp() {
     loadProposals();
     loadHistory();
   } else {
+    console.log("🔒 Showing welcome modal");
     showWelcomeModal();
   }
 }

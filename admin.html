@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel - Trash Rotation</title>
+  <link rel="stylesheet" href="admin-style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card">
+      <div class="login-icon">🔐</div>
+      <h1>Admin Panel</h1>
+      <p>Trash Rotation Management</p>
+
+      <div class="form-group">
+        <label>EMAIL</label>
+        <input type="email" id="adminEmail" placeholder="admin@trash.com" class="form-input"/>
+      </div>
+
+      <div class="form-group">
+        <label>PASSWORD</label>
+        <input type="password" id="adminPassword" placeholder="••••••••" class="form-input"/>
+      </div>
+
+      <button class="btn-login" onclick="adminLogin()">Login</button>
+      <p class="error-text" id="loginError"></p>
+    </div>
+  </div>
+
+  <!-- ADMIN DASHBOARD -->
+  <div id="adminDashboard" class="admin-dashboard hidden">
+    
+    <!-- Header -->
+    <div class="admin-header">
+      <h1>⚙️ Admin Dashboard</h1>
+      <button class="btn-logout" onclick="adminLogout()">Logout</button>
+    </div>
+
+    <!-- Navigation -->
+    <div class="admin-nav">
+      <button class="nav-tab active" onclick="switchAdminTab('users')">👥 Users</button>
+      <button class="nav-tab" onclick="switchAdminTab('notify')">📢 Notifications</button>
+      <button class="nav-tab" onclick="switchAdminTab('schedule')">📅 Schedule</button>
+    </div>
+
+    <!-- USERS TAB -->
+    <div id="usersTab" class="admin-tab">
+      <h2>Manage Users</h2>
+      <div class="users-list" id="usersList"></div>
+    </div>
+
+    <!-- NOTIFICATIONS TAB -->
+    <div id="notifyTab" class="admin-tab hidden">
+      <h2>Send Notification</h2>
+      
+      <div class="notify-form">
+        <div class="form-group">
+          <label>NOTIFICATION MESSAGE</label>
+          <textarea id="notifyMessage" placeholder="Enter notification text..." class="form-textarea"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>COLOR</label>
+          <div class="color-picker">
+            <label class="color-option">
+              <input type="radio" name="notifyColor" value="success" checked/>
+              <span class="color-box" style="background:#10b981"></span>
+              <span>Success</span>
+            </label>
+            <label class="color-option">
+              <input type="radio" name="notifyColor" value="warning"/>
+              <span class="color-box" style="background:#f97316"></span>
+              <span>Warning</span>
+            </label>
+            <label class="color-option">
+              <input type="radio" name="notifyColor" value="error"/>
+              <span class="color-box" style="background:#ef4444"></span>
+              <span>Error</span>
+            </label>
+            <label class="color-option">
+              <input type="radio" name="notifyColor" value="info"/>
+              <span class="color-box" style="background:#3b82f6"></span>
+              <span>Info</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>ICON (emoji)</label>
+          <input type="text" id="notifyIcon" placeholder="e.g., ✅ 📢 ⚠️" class="form-input" maxlength="2"/>
+        </div>
+
+        <button class="btn-send-notify" onclick="sendNotification()">Send Notification</button>
+      </div>
+
+      <div class="notifications-history" id="notifyHistory"></div>
+    </div>
+
+    <!-- SCHEDULE TAB -->
+    <div id="scheduleTab" class="admin-tab hidden">
+      <h2>Manage Schedule</h2>
+      <div class="schedule-container" id="scheduleContainer"></div>
+    </div>
+
+  </div>
+
+  <!-- NOTIFICATION DISPLAY (for users) -->
+  <div id="notificationDisplay" class="notification-display hidden"></div>
+
+  <script type="module" src="admin-config.js"></script>
+  <script type="module" src="admin-script.js"></script>
+
+</body>
+</html>
