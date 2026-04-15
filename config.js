@@ -1,6 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
-
+import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, onSnapshot, arrayUnion, serverTimestamp, collection, orderBy, query, limit } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
 // ⚠️ PASTE YOUR FIREBASE CONFIG HERE
 const firebaseConfig = {
   apiKey: "AIzaSyBINzCHZw_VBSb1IDRhAdYdTe2kLtahPzg",
@@ -16,11 +15,24 @@ let db;
 try {
   const app = initializeApp(firebaseConfig);
   db = getFirestore(app);
-  
   console.log("✅ Firebase initialized successfully");
 } catch (error) {
   console.error("❌ Firebase error:", error);
 }
 
-// Export for use in app.js
-window.db = db;
+// Export all functions and db
+export {
+  db,
+  doc,
+  getDoc,
+  setDoc,
+  addDoc,
+  updateDoc,
+  onSnapshot,
+  arrayUnion,
+  serverTimestamp,
+  collection,
+  orderBy,
+  query,
+  limit
+};

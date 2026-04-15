@@ -73,7 +73,7 @@
         </label>
       </div>
 
-      <button class="btn-gradient" onclick="window.joinNow()">Join Now →</button>
+      <button class="btn-gradient" id="joinBtn">Join Now →</button>
 
     </div>
   </div>
@@ -87,7 +87,7 @@
     <header class="header">
       <div class="header-content">
         <h1 id="title">🗑️ Trash Rotation</h1>
-        <button class="btn-icon" onclick="window.showWelcomeModal()">⚙️</button>
+        <button class="btn-icon" id="settingsBtn">⚙️</button>
       </div>
     </header>
 
@@ -108,7 +108,7 @@
         <p class="label">TODAY'S TURN</p>
         <div id="todayPerson" class="person-name">—</div>
         <div id="todayDate" class="date-text"></div>
-        <button class="btn-primary" onclick="window.markDone()">Done ✓</button>
+        <button class="btn-primary" id="markDoneBtn">Done ✓</button>
       </div>
 
       <!-- Week -->
@@ -130,15 +130,14 @@
 
     <!-- Bottom Nav -->
     <nav class="bottom-nav">
-      <button class="nav-btn active" onclick="window.switchTab('home')">🏠 Home</button>
-      <button class="nav-btn" onclick="window.switchTab('history')">📊 History</button>
+      <button class="nav-btn active" id="tabHomeBtn">🏠 Home</button>
+      <button class="nav-btn" id="tabHistoryBtn">📊 History</button>
     </nav>
 
   </div>
 
-  <!-- Scripts -->
-  <script type="module" src="config.js"></script>
-  <script src="app.js"></script>
+  <!-- Scripts - Module only -->
+  <script type="module" src="app.js"></script>
 
 </body>
 </html>

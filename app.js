@@ -1,3 +1,20 @@
+// ========== IMPORTS FROM CONFIG ==========
+import {
+  db,
+  doc,
+  getDoc,
+  setDoc,
+  addDoc,
+  updateDoc,
+  onSnapshot,
+  arrayUnion,
+  serverTimestamp,
+  collection,
+  orderBy,
+  query,
+  limit
+} from "./config.js";
+
 // ========== PUSH NOTIFICATIONS FUNCTIONS ==========
 
 function notificationsSupported() {
@@ -140,26 +157,12 @@ function sendTestNotification() {
   );
 }
 
-// ========== FIRESTORE IMPORTS ==========
-
-const {
-  collection,
-  doc,
-  getDoc,
-  setDoc,
-  addDoc,
-  updateDoc,
-  onSnapshot,
-  arrayUnion,
-  serverTimestamp,
-  orderBy,
-  query,
-  limit
-} = firebase.firestore;
+// Make test notification global
+window.sendTestNotification = sendTestNotification;
 
 // ========== APP STATE ==========
 
-window.appState = {
+const appState = {
   members: {},
   myName: "",
   currentLanguage: "en",
@@ -222,20 +225,20 @@ const translations = {
 };
 
 function t(key) {
-  return translations[window.appState.currentLanguage]?.[key] || key;
+  return translations[appState.currentLanguage]?.[key] || key;
 }
 
 function updateTexts() {
   document.getElementById("title").textContent = "🗑️ " + t("appTitle");
 }
 
-window.showWelcomeModal = function() {
+function showWelcomeModal() {
   document.getElementById("welcomeModal").classList.remove("hidden");
   document.getElementById("nameInput").value = "";
-  document.getElementById("langSelect").value = window.appState.currentLanguage;
+  document.getElementById("langSelect").value = appState.currentLanguage;
   document.querySelectorAll(".day-checkbox input").forEach(cb => cb.checked = false);
   document.getElementById("enableNotifications").checked = getNotificationPreference();
-};
+}
 
 function hideWelcomeModal() {
   document.getElementById("welcomeModal").classList.add("hidden");
@@ -247,8 +250,8 @@ function showMainApp() {
 }
 
 // ========== JOIN NOW ==========
-window.joinNow = async function() {
-  if (window.appState.loading) return;
+async function joinNow() {
+  if (appState.loading) return;
 
   const name = document.getElementById("nameInput").value.trim();
   const lang = document.getElementById("langSelect").value;
@@ -259,7 +262,7 @@ window.joinNow = async function() {
     return;
   }
 
-  if (window.appState.members[name]) {
+  if (appState.members[name]) {
     alert(`❌ "${name}" is already taken. Please choose another name.`);
     return;
   }
@@ -272,12 +275,12 @@ window.joinNow = async function() {
     return;
   }
 
-  window.appState.loading = true;
+  appState.loading = true;
   console.log("🚀 User joining with name:", name, "days:", days, "notifications:", enableNotif);
 
   try {
-    window.appState.myName = name;
-    window.appState.currentLanguage = lang;
+    appState.myName = name;
+    appState.currentLanguage = lang;
 
     localStorage.setItem("myName", name);
     localStorage.setItem("language", lang);
@@ -288,8 +291,7 @@ window.joinNow = async function() {
       await requestNotificationPermission();
     }
 
-    const configRef = doc(window.db, "appSettings", "config");
-    
+    const configRef = doc(db, "appSettings", "config");
     const configDoc = await getDoc(configRef);
     
     let members = {};
@@ -303,7 +305,6 @@ window.joinNow = async function() {
     };
 
     console.log("📝 Saving members:", members);
-
     await setDoc(configRef, { members }, { merge: true });
 
     console.log("✅ Member added successfully");
@@ -319,24 +320,24 @@ window.joinNow = async function() {
     listenToAdminNotifications();
     
     setTimeout(() => {
-      scheduleDaily10PMNotification(name, window.appState.currentSchedule);
+      scheduleDaily10PMNotification(name, appState.currentSchedule);
     }, 1000);
 
-    window.appState.loading = false;
+    appState.loading = false;
   } catch (error) {
-    window.appState.loading = false;
+    appState.loading = false;
     console.error("❌ Join error:", error);
     alert("❌ Error: " + error.message);
   }
-};
+}
 
 // ========== LOAD MEMBERS ==========
 function loadMembers() {
   const unsubscribe = onSnapshot(
-    doc(window.db, "appSettings", "config"),
+    doc(db, "appSettings", "config"),
     (docSnap) => {
       if (docSnap.exists()) {
-        window.appState.members = docSnap.data().members || {};
+        appState.members = docSnap.data().members || {};
       }
       renderMembers();
       regenerateSchedule();
@@ -345,14 +346,14 @@ function loadMembers() {
       console.error("❌ Error loading members:", error);
     }
   );
-  window.appState.unsubscribers.push(unsubscribe);
+  appState.unsubscribers.push(unsubscribe);
 }
 
 function renderMembers() {
   const container = document.getElementById("membersList");
   container.innerHTML = "";
 
-  const entries = Object.entries(window.appState.members);
+  const entries = Object.entries(appState.members);
 
   if (entries.length === 0) {
     container.innerHTML = '<p style="text-align:center;color:#9ca3af;padding:2rem">No members yet. Be first to join!</p>';
@@ -364,7 +365,7 @@ function renderMembers() {
     const div = document.createElement("div");
     div.className = "member-card";
 
-    const isMe = name === window.appState.myName;
+    const isMe = name === appState.myName;
     const youLabel = isMe ? " (you)" : "";
 
     const daysHtml = days.length > 0 
@@ -387,10 +388,10 @@ function regenerateSchedule() {
   const monday = getMonday();
   const weekKey = monday.toISOString().split("T")[0];
   const schedule = {};
-  const members = Object.entries(window.appState.members);
+  const members = Object.entries(appState.members);
 
   if (members.length === 0) {
-    setDoc(doc(window.db, "schedules", weekKey), {});
+    setDoc(doc(db, "schedules", weekKey), {});
     return;
   }
 
@@ -412,7 +413,7 @@ function regenerateSchedule() {
   }
 
   try {
-    setDoc(doc(window.db, "schedules", weekKey), schedule);
+    setDoc(doc(db, "schedules", weekKey), schedule);
   } catch (error) {
     console.error("Error saving schedule:", error);
   }
@@ -431,21 +432,21 @@ function loadSchedule() {
   const weekKey = monday.toISOString().split("T")[0];
 
   const unsubscribe = onSnapshot(
-    doc(window.db, "schedules", weekKey),
+    doc(db, "schedules", weekKey),
     (docSnap) => {
-      window.appState.currentSchedule = docSnap.exists() ? docSnap.data() : {};
+      appState.currentSchedule = docSnap.exists() ? docSnap.data() : {};
       renderToday();
       renderWeek();
       renderCalendarWidget();
     },
     (error) => console.error("❌ Error loading schedule:", error)
   );
-  window.appState.unsubscribers.push(unsubscribe);
+  appState.unsubscribers.push(unsubscribe);
 }
 
 function renderToday() {
   const today = new Date().toISOString().split("T")[0];
-  const person = window.appState.currentSchedule[today] || "—";
+  const person = appState.currentSchedule[today] || "—";
   document.getElementById("todayPerson").textContent = person;
 
   const options = { weekday: "long", month: "long", day: "numeric" };
@@ -464,7 +465,7 @@ function renderWeek() {
     day.setDate(monday.getDate() + i);
     const key = day.toISOString().split("T")[0];
     const isToday = key === today;
-    const person = window.appState.currentSchedule[key] || "—";
+    const person = appState.currentSchedule[key] || "—";
 
     const div = document.createElement("div");
     div.className = `week-card ${isToday ? "today" : "other"}`;
@@ -475,7 +476,7 @@ function renderWeek() {
       <div class="week-card-day">${dayName}</div>
       <div class="week-card-date">${day.getDate()}</div>
       <div class="week-card-person">${person}</div>
-      <button class="week-card-btn" onclick="window.proposeChange('${key}', '${person}')">Change</button>
+      <button class="week-card-btn" onclick="proposeChange('${key}', '${person}')">Change</button>
     `;
 
     container.appendChild(div);
@@ -497,7 +498,7 @@ function renderCalendarWidget() {
     day.setDate(monday.getDate() + i);
     const key = day.toISOString().split("T")[0];
     const isToday = key === today;
-    const person = window.appState.currentSchedule[key] || "—";
+    const person = appState.currentSchedule[key] || "—";
 
     const div = document.createElement("div");
     div.className = `calendar-day ${isToday ? "today" : ""}`;
@@ -514,8 +515,8 @@ function renderCalendarWidget() {
   }
 }
 
-window.proposeChange = function(dateKey, currentPerson) {
-  const memberNames = Object.keys(window.appState.members);
+function proposeChange(dateKey, currentPerson) {
+  const memberNames = Object.keys(appState.members);
   const others = memberNames.filter(m => m !== currentPerson);
 
   if (others.length === 0) {
@@ -531,21 +532,21 @@ window.proposeChange = function(dateKey, currentPerson) {
   if (!newPerson || !memberNames.includes(newPerson)) return;
 
   try {
-    addDoc(collection(window.db, "proposals"), {
+    addDoc(collection(db, "proposals"), {
       dateKey,
       fromPerson: currentPerson,
       toPerson: newPerson,
-      votes: [window.appState.myName],
+      votes: [appState.myName],
       createdAt: serverTimestamp(),
       status: "pending"
     });
   } catch (error) {
     console.error("❌ Error proposing change:", error);
   }
-};
+}
 
 function loadProposals() {
-  const q = query(collection(window.db, "proposals"), orderBy("createdAt", "desc"));
+  const q = query(collection(db, "proposals"), orderBy("createdAt", "desc"));
 
   const unsubscribe = onSnapshot(q, (snapshot) => {
     const container = document.getElementById("proposalsList");
@@ -558,13 +559,13 @@ function loadProposals() {
       return;
     }
 
-    const memberCount = Object.keys(window.appState.members).length;
+    const memberCount = Object.keys(appState.members).length;
 
     pending.forEach((docSnap) => {
       const p = docSnap.data();
       const votes = p.votes || [];
       const votesNeeded = memberCount - votes.length;
-      const hasVoted = votes.includes(window.appState.myName);
+      const hasVoted = votes.includes(appState.myName);
 
       const div = document.createElement("div");
       div.className = "proposal-card";
@@ -584,7 +585,7 @@ function loadProposals() {
             <div class="proposal-votes">${votesNeeded} votes needed</div>
           </div>
           <div class="proposal-action">
-            ${!hasVoted ? `<button class="btn-vote" onclick="window.voteProposal('${docSnap.id}')">I Agree</button>` : `<div class="voted-badge">Voted ✓</div>`}
+            ${!hasVoted ? `<button class="btn-vote" onclick="voteProposal('${docSnap.id}')">I Agree</button>` : `<div class="voted-badge">Voted ✓</div>`}
           </div>
         </div>
       `;
@@ -597,23 +598,23 @@ function loadProposals() {
     });
   }, (error) => console.error("❌ Error loading proposals:", error));
 
-  window.appState.unsubscribers.push(unsubscribe);
+  appState.unsubscribers.push(unsubscribe);
 }
 
-window.voteProposal = function(proposalId) {
+function voteProposal(proposalId) {
   try {
-    updateDoc(doc(window.db, "proposals", proposalId), {
-      votes: arrayUnion(window.appState.myName)
+    updateDoc(doc(db, "proposals", proposalId), {
+      votes: arrayUnion(appState.myName)
     });
   } catch (error) {
     console.error("❌ Error voting:", error);
   }
-};
+}
 
 async function applyProposal(proposalId, proposal) {
   try {
     const weekKey = getMonday(new Date(proposal.dateKey)).toISOString().split("T")[0];
-    const scheduleRef = doc(window.db, "schedules", weekKey);
+    const scheduleRef = doc(db, "schedules", weekKey);
     const scheduleDoc = await getDoc(scheduleRef);
 
     if (scheduleDoc.exists()) {
@@ -622,7 +623,7 @@ async function applyProposal(proposalId, proposal) {
       await setDoc(scheduleRef, schedule);
     }
 
-    await updateDoc(doc(window.db, "proposals", proposalId), { status: "applied" });
+    await updateDoc(doc(db, "proposals", proposalId), { status: "applied" });
     renderToday();
     renderWeek();
     renderCalendarWidget();
@@ -631,9 +632,9 @@ async function applyProposal(proposalId, proposal) {
   }
 }
 
-window.markDone = function() {
+function markDone() {
   const today = new Date().toISOString().split("T")[0];
-  const person = window.appState.currentSchedule[today];
+  const person = appState.currentSchedule[today];
 
   if (!person || person === "—") {
     alert("No one assigned today");
@@ -641,10 +642,10 @@ window.markDone = function() {
   }
 
   try {
-    addDoc(collection(window.db, "history"), {
+    addDoc(collection(db, "history"), {
       date: serverTimestamp(),
       person: person,
-      markedBy: window.appState.myName
+      markedBy: appState.myName
     });
 
     alert("✅ Done!");
@@ -652,14 +653,14 @@ window.markDone = function() {
   } catch (error) {
     console.error("❌ Error marking done:", error);
   }
-};
+}
 
 function loadHistory() {
-  const q = query(collection(window.db, "history"), orderBy("date", "desc"), limit(100));
+  const q = query(collection(db, "history"), orderBy("date", "desc"), limit(100));
 
   const unsubscribe = onSnapshot(q, (snapshot) => {
     let count = {};
-    Object.keys(window.appState.members).forEach(m => count[m] = 0);
+    Object.keys(appState.members).forEach(m => count[m] = 0);
 
     snapshot.forEach(d => {
       const person = d.data().person;
@@ -681,12 +682,12 @@ function loadHistory() {
       .join("");
   }, (error) => console.error("❌ Error loading history:", error));
 
-  window.appState.unsubscribers.push(unsubscribe);
+  appState.unsubscribers.push(unsubscribe);
 }
 
 function listenToAdminNotifications() {
   const q = query(
-    collection(window.db, "adminNotifications"),
+    collection(db, "adminNotifications"),
     orderBy("createdAt", "desc"),
     limit(1)
   );
@@ -739,45 +740,46 @@ function showUserNotification(message, color = "success", icon = "✅") {
   }, 4000);
 }
 
-window.switchTab = function(tab) {
+function switchTab(tab) {
   const contentHome = document.getElementById("contentHome");
   const contentHistory = document.getElementById("contentHistory");
-  const btns = document.querySelectorAll(".nav-btn");
+  const tabHomeBtn = document.getElementById("tabHomeBtn");
+  const tabHistoryBtn = document.getElementById("tabHistoryBtn");
 
   if (tab === "home") {
     contentHome.classList.remove("hidden");
     contentHistory.classList.add("hidden");
-    btns[0].classList.add("active");
-    btns[1].classList.remove("active");
+    tabHomeBtn.classList.add("active");
+    tabHistoryBtn.classList.remove("active");
   } else {
     contentHome.classList.add("hidden");
     contentHistory.classList.remove("hidden");
-    btns[0].classList.remove("active");
-    btns[1].classList.add("active");
+    tabHomeBtn.classList.remove("active");
+    tabHistoryBtn.classList.add("active");
     loadHistory();
   }
-};
+}
 
 async function initializeApp() {
   const savedName = localStorage.getItem("myName");
   const savedLang = localStorage.getItem("language") || "en";
 
-  window.appState.currentLanguage = savedLang;
+  appState.currentLanguage = savedLang;
   updateTexts();
 
   await initNotifications();
 
   try {
-    const configDoc = await getDoc(doc(window.db, "appSettings", "config"));
-    window.appState.members = configDoc.exists() ? (configDoc.data().members || {}) : {};
-    console.log("✅ Loaded members:", window.appState.members);
+    const configDoc = await getDoc(doc(db, "appSettings", "config"));
+    appState.members = configDoc.exists() ? (configDoc.data().members || {}) : {};
+    console.log("✅ Loaded members:", appState.members);
   } catch (error) {
     console.error("❌ Error:", error);
   }
 
-  if (savedName && window.appState.members[savedName]) {
+  if (savedName && appState.members[savedName]) {
     console.log("🔓 User already joined:", savedName);
-    window.appState.myName = savedName;
+    appState.myName = savedName;
     hideWelcomeModal();
     showMainApp();
     loadMembers();
@@ -787,12 +789,27 @@ async function initializeApp() {
     listenToAdminNotifications();
     
     setTimeout(() => {
-      scheduleDaily10PMNotification(savedName, window.appState.currentSchedule);
+      scheduleDaily10PMNotification(savedName, appState.currentSchedule);
     }, 1000);
   } else {
     console.log("🔒 Showing welcome modal");
-    window.showWelcomeModal();
+    showWelcomeModal();
   }
 }
 
+// ========== EVENT LISTENERS ==========
+
+document.getElementById("joinBtn").addEventListener("click", joinNow);
+document.getElementById("settingsBtn").addEventListener("click", showWelcomeModal);
+document.getElementById("markDoneBtn").addEventListener("click", markDone);
+document.getElementById("tabHomeBtn").addEventListener("click", () => switchTab("home"));
+document.getElementById("tabHistoryBtn").addEventListener("click", () => switchTab("history"));
+
+// ========== GLOBAL FUNCTIONS (for onclick) ==========
+window.proposeChange = proposeChange;
+window.voteProposal = voteProposal;
+window.switchTab = switchTab;
+window.showWelcomeModal = showWelcomeModal;
+
+// ========== INITIALIZE ON PAGE LOAD ==========
 window.addEventListener("DOMContentLoaded", initializeApp);
