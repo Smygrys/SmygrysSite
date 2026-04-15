@@ -65,6 +65,14 @@
         </div>
       </div>
 
+      <!-- Notifications Toggle -->
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="enableNotifications" checked/>
+          <span>📢 Enable push notifications at 10 PM</span>
+        </label>
+      </div>
+
       <button class="btn-gradient" onclick="joinNow()">Join Now →</button>
 
     </div>
@@ -85,6 +93,12 @@
 
     <main class="content" id="contentHome">
       
+      <!-- WIDGET - Calendar View -->
+      <div class="widget-calendar">
+        <h3 class="widget-title">📅 This Week's Schedule</h3>
+        <div class="calendar-grid" id="calendarWidget"></div>
+      </div>
+
       <!-- Members -->
       <h2 class="section-title">Members</h2>
       <div id="membersList" class="members-list"></div>
@@ -124,6 +138,7 @@
 
   <script type="module" src="config.js"></script>
   <script type="module" src="script.js"></script>
+  <script type="module" src="notifications.js"></script>
 
 </body>
 </html>

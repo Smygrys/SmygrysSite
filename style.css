@@ -34,7 +34,7 @@ body {
   user-select: none;
 }
 
-/* WELCOME MODAL */
+/* ========== WELCOME MODAL ========== */
 
 .welcome-modal {
   position: fixed;
@@ -148,6 +148,17 @@ body {
   text-transform: uppercase;
 }
 
+.form-group label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  text-transform: none;
+  color: var(--text-light);
+  font-weight: 500;
+}
+
 .form-input {
   width: 100%;
   background: var(--input-bg);
@@ -158,6 +169,7 @@ body {
   font-size: 1rem;
   -webkit-appearance: none;
   appearance: none;
+  transition: all 0.3s;
 }
 
 .form-input:focus {
@@ -171,7 +183,14 @@ body {
   color: var(--text-light);
 }
 
-/* DAYS PICKER */
+.form-group input[type="checkbox"] {
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+  accent-color: var(--primary);
+}
+
+/* ========== DAYS PICKER ========== */
 
 .days-picker {
   display: grid;
@@ -226,6 +245,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  transition: all 0.3s;
 }
 
 .btn-gradient:hover {
@@ -241,7 +261,7 @@ body {
   display: none !important;
 }
 
-/* MAIN APP */
+/* ========== MAIN APP ========== */
 
 .app-container {
   max-width: 28rem;
@@ -261,7 +281,7 @@ body {
   display: none !important;
 }
 
-/* HEADER */
+/* ========== HEADER ========== */
 
 .header {
   background: var(--primary-gradient);
@@ -293,13 +313,14 @@ body {
   cursor: pointer;
   opacity: 0.8;
   padding: 0.5rem;
+  transition: opacity 0.3s;
 }
 
 .btn-icon:hover {
   opacity: 1;
 }
 
-/* CONTENT */
+/* ========== CONTENT ========== */
 
 .content {
   flex: 1;
@@ -312,7 +333,75 @@ body {
   display: none !important;
 }
 
-/* MEMBERS */
+/* ========== WIDGET CALENDAR ========== */
+
+.widget-calendar {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(236, 72, 153, 0.1));
+  border: 2px solid var(--primary);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.widget-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 0 0 1rem 0;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+}
+
+.calendar-day {
+  background: white;
+  border-radius: 1rem;
+  padding: 0.75rem;
+  text-align: center;
+  border: 2px solid #e2e8f0;
+  transition: all 0.3s;
+}
+
+.calendar-day.today {
+  background: var(--primary-gradient);
+  color: white;
+  border-color: var(--primary);
+  box-shadow: 0 5px 15px rgba(168, 85, 247, 0.3);
+}
+
+.calendar-day-name {
+  font-size: 0.7rem;
+  font-weight: 700;
+  opacity: 0.7;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+.calendar-day-date {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.calendar-day-person {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.5rem;
+  background: rgba(168, 85, 247, 0.1);
+  border-radius: 0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-day.today .calendar-day-person {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ========== MEMBERS ========== */
 
 .members-list {
   display: flex;
@@ -371,7 +460,7 @@ body {
   border-color: var(--success);
 }
 
-/* TODAY CARD */
+/* ========== TODAY CARD ========== */
 
 .today-card {
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
@@ -415,6 +504,7 @@ body {
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
+  transition: all 0.3s;
 }
 
 .btn-primary:hover {
@@ -426,7 +516,7 @@ body {
   transform: scale(0.98);
 }
 
-/* SECTION */
+/* ========== SECTION TITLE ========== */
 
 .section-title {
   font-size: 1.125rem;
@@ -439,7 +529,7 @@ body {
   color: var(--warning);
 }
 
-/* WEEK GRID */
+/* ========== WEEK GRID ========== */
 
 .week-grid {
   display: flex;
@@ -464,6 +554,7 @@ body {
   border: 2px solid transparent;
   background: white;
   color: var(--text-primary);
+  transition: all 0.3s;
 }
 
 .week-card.today {
@@ -511,13 +602,14 @@ body {
   font-weight: 700;
   padding: 0.5rem;
   text-transform: uppercase;
+  transition: all 0.2s;
 }
 
 .week-card-btn:hover {
   color: var(--primary);
 }
 
-/* PROPOSALS */
+/* ========== PROPOSALS ========== */
 
 .proposals-list {
   display: flex;
@@ -531,10 +623,12 @@ body {
   border: 1.5px solid #fbbf24;
   border-radius: 1.5rem;
   padding: 1.5rem;
+  transition: all 0.3s;
 }
 
 .proposal-card:hover {
   border-color: var(--warning);
+  box-shadow: 0 5px 15px rgba(249, 115, 22, 0.2);
 }
 
 .proposal-content {
@@ -589,10 +683,12 @@ body {
   font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
 .btn-vote:hover {
   background: #ea580c;
+  transform: translateY(-2px);
 }
 
 .voted-badge {
@@ -601,7 +697,7 @@ body {
   font-size: 0.85rem;
 }
 
-/* STATS */
+/* ========== STATS ========== */
 
 .stats-grid {
   display: grid;
@@ -616,6 +712,13 @@ body {
   padding: 1.5rem;
   border-radius: 1.5rem;
   text-align: center;
+  transition: all 0.3s;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--primary);
+  box-shadow: 0 8px 20px rgba(168, 85, 247, 0.1);
 }
 
 .stat-number {
@@ -625,6 +728,7 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  margin: 0;
 }
 
 .stat-name {
@@ -635,7 +739,7 @@ body {
   text-transform: uppercase;
 }
 
-/* HISTORY */
+/* ========== HISTORY LIST ========== */
 
 .history-list {
   display: flex;
@@ -652,14 +756,18 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition: all 0.3s;
 }
 
 .history-item:hover {
   border-color: var(--primary);
+  box-shadow: 0 5px 15px rgba(168, 85, 247, 0.1);
+  transform: translateY(-2px);
 }
 
 .history-person {
   font-weight: 700;
+  color: var(--text-primary);
 }
 
 .history-date {
@@ -667,7 +775,7 @@ body {
   color: var(--text-secondary);
 }
 
-/* BOTTOM NAV */
+/* ========== BOTTOM NAV ========== */
 
 .bottom-nav {
   position: fixed;
@@ -693,6 +801,7 @@ body {
   font-weight: 600;
   cursor: pointer;
   color: var(--text-secondary);
+  transition: all 0.3s;
 }
 
 .nav-btn.active {
@@ -700,7 +809,11 @@ body {
   border-bottom-color: var(--primary);
 }
 
-/* NOTIFICATION DISPLAY */
+.nav-btn:hover {
+  color: var(--primary);
+}
+
+/* ========== NOTIFICATION DISPLAY ========== */
 
 .notification-display {
   position: fixed;
@@ -786,14 +899,30 @@ body {
   }
 }
 
+/* ========== RESPONSIVE ========== */
+
 @media (max-width: 480px) {
   .person-name {
     font-size: 2.5rem;
   }
+
   .stats-grid {
     grid-template-columns: 1fr;
   }
+
+  .calendar-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .calendar-day-person {
+    font-size: 0.65rem;
+  }
+
   .days-picker {
     grid-template-columns: repeat(5, 1fr);
+  }
+
+  .widget-calendar {
+    margin-bottom: 1.5rem;
   }
 }

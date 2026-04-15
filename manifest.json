@@ -8,6 +8,7 @@
   "orientation": "portrait-primary",
   "theme_color": "#a855f7",
   "background_color": "#ffffff",
+  "permissions": ["notifications"],
   "icons": [
     {
       "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23a855f7' width='192' height='192' rx='45'/><text x='96' y='96' font-size='100' text-anchor='middle' dominant-baseline='middle'>🗑️</text></svg>",

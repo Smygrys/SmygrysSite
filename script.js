@@ -13,6 +13,17 @@ import {
   query,
   limit
 } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+import { 
+  requestNotificationPermission, 
+  saveNotificationPreference, 
+  getNotificationPreference,
+  scheduleDaily10PMNotification,
+  initNotifications,
+  sendTestNotification
+} from "./notifications.js";
+
+// Make test notification global
+window.sendTestNotification = sendTestNotification;
 
 window.appState = {
   members: {},
@@ -26,9 +37,54 @@ window.appState = {
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
 const translations = {
-  en: { appTitle: "Trash Rotation", membersTitle: "Members", todayLabel: "TODAY'S TURN", weekTitle: "This Week", proposalsTitle: "Pending Changes", historyTitle: "History", markDoneBtn: "Done ✓", noProposals: "No pending changes", votesNeeded: "votes needed", voted: "Voted ✓", iAgree: "I Agree", change: "Change", selectDays: "Select days to continue" },
-  pl: { appTitle: "Rotacja Śmieci", membersTitle: "Członkowie", todayLabel: "DZISIAJ", weekTitle: "Ten Tydzień", proposalsTitle: "Oczekujące Zmiany", historyTitle: "Historia", markDoneBtn: "Zrobione ✓", noProposals: "Brak oczekujących zmian", votesNeeded: "głosów potrzebnych", voted: "Zagłosowałem ✓", iAgree: "Zgadzam się", change: "Zmień", selectDays: "Wybierz dni aby kontynuować" },
-  uk: { appTitle: "Ротація Сміття", membersTitle: "Учасники", todayLabel: "СЬОГОДНІ", weekTitle: "Цей Тиждень", proposalsTitle: "Очікуючі Зміни", historyTitle: "Історія", markDoneBtn: "Виконано ✓", noProposals: "Немає очікуючих змін", votesNeeded: "голосів потрібно", voted: "Проголосував ✓", iAgree: "Я згідний", change: "Змінити", selectDays: "Виберіть дні для продовження" }
+  en: { 
+    appTitle: "Trash Rotation", 
+    membersTitle: "Members", 
+    todayLabel: "TODAY'S TURN", 
+    weekTitle: "This Week", 
+    proposalsTitle: "Pending Changes", 
+    historyTitle: "History", 
+    markDoneBtn: "Done ✓", 
+    noProposals: "No pending changes", 
+    votesNeeded: "votes needed", 
+    voted: "Voted ✓", 
+    iAgree: "I Agree", 
+    change: "Change", 
+    selectDays: "Select days to continue",
+    enableNotifications: "Enable push notifications at 10 PM"
+  },
+  pl: { 
+    appTitle: "Rotacja Śmieci", 
+    membersTitle: "Członkowie", 
+    todayLabel: "DZISIAJ", 
+    weekTitle: "Ten Tydzień", 
+    proposalsTitle: "Oczekujące Zmiany", 
+    historyTitle: "Historia", 
+    markDoneBtn: "Zrobione ✓", 
+    noProposals: "Brak oczekujących zmian", 
+    votesNeeded: "głosów potrzebnych", 
+    voted: "Zagłosowałem ✓", 
+    iAgree: "Zgadzam się", 
+    change: "Zmień", 
+    selectDays: "Wybierz dni aby kontynuować",
+    enableNotifications: "Włącz powiadomienia push o 22:00"
+  },
+  uk: { 
+    appTitle: "Ротація Сміття", 
+    membersTitle: "Учасники", 
+    todayLabel: "СЬОГОДНІ", 
+    weekTitle: "Цей Тиждень", 
+    proposalsTitle: "Очікуючі Зміни", 
+    historyTitle: "Історія", 
+    markDoneBtn: "Виконано ✓", 
+    noProposals: "Немає очікуючих змін", 
+    votesNeeded: "голосів потрібно", 
+    voted: "Проголосував ✓", 
+    iAgree: "Я згідний", 
+    change: "Змінити", 
+    selectDays: "Виберіть дні для продовження",
+    enableNotifications: "Увімкнути push-сповіщення о 22:00"
+  }
 };
 
 function t(key) {
@@ -41,11 +97,10 @@ function updateTexts() {
 
 function showWelcomeModal() {
   document.getElementById("welcomeModal").classList.remove("hidden");
-  // Clear the form when opening modal
   document.getElementById("nameInput").value = "";
   document.getElementById("langSelect").value = window.appState.currentLanguage;
-  // Uncheck all days
   document.querySelectorAll(".day-checkbox input").forEach(cb => cb.checked = false);
+  document.getElementById("enableNotifications").checked = getNotificationPreference();
 }
 
 function hideWelcomeModal() {
@@ -63,13 +118,13 @@ window.joinNow = async () => {
 
   const name = document.getElementById("nameInput").value.trim();
   const lang = document.getElementById("langSelect").value;
+  const enableNotif = document.getElementById("enableNotifications").checked;
 
   if (!name) {
     alert("❌ Please enter your name");
     return;
   }
 
-  // Check if name already exists
   if (window.appState.members[name]) {
     alert(`❌ "${name}" is already taken. Please choose another name.`);
     return;
@@ -84,7 +139,7 @@ window.joinNow = async () => {
   }
 
   window.appState.loading = true;
-  console.log("🚀 User joining with name:", name, "days:", days);
+  console.log("🚀 User joining with name:", name, "days:", days, "notifications:", enableNotif);
 
   try {
     window.appState.myName = name;
@@ -92,6 +147,14 @@ window.joinNow = async () => {
 
     localStorage.setItem("myName", name);
     localStorage.setItem("language", lang);
+    
+    // Save notification preference
+    saveNotificationPreference(enableNotif);
+    
+    // Request permission if user wants notifications
+    if (enableNotif) {
+      await requestNotificationPermission();
+    }
 
     const configRef = doc(db, "appSettings", "config");
     
@@ -102,7 +165,6 @@ window.joinNow = async () => {
       members = configDoc.data().members || {};
     }
 
-    // Add this new member with their own name
     members[name] = {
       days: days,
       joinedAt: new Date().toISOString()
@@ -123,6 +185,11 @@ window.joinNow = async () => {
     loadProposals();
     loadHistory();
     listenToAdminNotifications();
+    
+    // Start notification scheduler
+    setTimeout(() => {
+      scheduleDaily10PMNotification(name, window.appState.currentSchedule);
+    }, 1000);
 
     window.appState.loading = false;
   } catch (error) {
@@ -166,7 +233,6 @@ function renderMembers() {
     const div = document.createElement("div");
     div.className = "member-card";
 
-    // Show who YOU are
     const isMe = name === window.appState.myName;
     const youLabel = isMe ? " (you)" : "";
 
@@ -203,16 +269,13 @@ function regenerateSchedule() {
     const dateKey = day.toISOString().split("T")[0];
     const dayName = DAYS[i];
 
-    // Find members who prefer this day
     const preferring = members.filter(([, data]) => 
       data.days && data.days.includes(dayName)
     );
 
     if (preferring.length > 0) {
-      // Randomly pick one from those who prefer this day
       schedule[dateKey] = preferring[Math.floor(Math.random() * preferring.length)][0];
     } else {
-      // Random from all members
       schedule[dateKey] = members[Math.floor(Math.random() * members.length)][0];
     }
   }
@@ -242,6 +305,7 @@ function loadSchedule() {
       window.appState.currentSchedule = docSnap.exists() ? docSnap.data() : {};
       renderToday();
       renderWeek();
+      renderCalendarWidget();
     },
     (error) => console.error("❌ Error loading schedule:", error)
   );
@@ -281,6 +345,38 @@ function renderWeek() {
       <div class="week-card-date">${day.getDate()}</div>
       <div class="week-card-person">${person}</div>
       <button class="week-card-btn" onclick="window.proposeChange('${key}', '${person}')">Change</button>
+    `;
+
+    container.appendChild(div);
+  }
+}
+
+// ========== RENDER CALENDAR WIDGET ==========
+function renderCalendarWidget() {
+  const container = document.getElementById("calendarWidget");
+  if (!container) return;
+  
+  container.innerHTML = "";
+
+  const today = new Date().toISOString().split("T")[0];
+  const monday = getMonday();
+
+  for (let i = 0; i < 5; i++) {
+    const day = new Date(monday);
+    day.setDate(monday.getDate() + i);
+    const key = day.toISOString().split("T")[0];
+    const isToday = key === today;
+    const person = window.appState.currentSchedule[key] || "—";
+
+    const div = document.createElement("div");
+    div.className = `calendar-day ${isToday ? "today" : ""}`;
+
+    const dayName = day.toLocaleDateString("en-US", { weekday: "short" });
+
+    div.innerHTML = `
+      <div class="calendar-day-name">${dayName}</div>
+      <div class="calendar-day-date">${day.getDate()}</div>
+      <div class="calendar-day-person">${person}</div>
     `;
 
     container.appendChild(div);
@@ -398,6 +494,7 @@ async function applyProposal(proposalId, proposal) {
     await updateDoc(doc(db, "proposals", proposalId), { status: "applied" });
     renderToday();
     renderWeek();
+    renderCalendarWidget();
   } catch (error) {
     console.error("❌ Error applying proposal:", error);
   }
@@ -473,7 +570,6 @@ function listenToAdminNotifications() {
         const now = new Date();
         const timeDiff = now - createdTime;
         
-        // Only show if less than 5 seconds old (new notification)
         if (timeDiff < 5000) {
           showUserNotification(data.message, data.color, data.icon);
         }
@@ -539,6 +635,9 @@ async function initializeApp() {
   window.appState.currentLanguage = savedLang;
   updateTexts();
 
+  // Initialize notifications
+  await initNotifications();
+
   try {
     const configDoc = await getDoc(doc(db, "appSettings", "config"));
     window.appState.members = configDoc.exists() ? (configDoc.data().members || {}) : {};
@@ -547,7 +646,6 @@ async function initializeApp() {
     console.error("❌ Error:", error);
   }
 
-  // Check if user already joined
   if (savedName && window.appState.members[savedName]) {
     console.log("🔓 User already joined:", savedName);
     window.appState.myName = savedName;
@@ -558,8 +656,13 @@ async function initializeApp() {
     loadProposals();
     loadHistory();
     listenToAdminNotifications();
+    
+    // Start notification scheduler
+    setTimeout(() => {
+      scheduleDaily10PMNotification(savedName, window.appState.currentSchedule);
+    }, 1000);
   } else {
-    console.log("🔒 Showing welcome modal - user needs to join");
+    console.log("🔒 Showing welcome modal");
     showWelcomeModal();
   }
 }
