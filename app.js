@@ -1,3 +1,4 @@
+// ========== IMPORTS FROM CONFIG ==========
 import {
   db,
   doc,
@@ -13,9 +14,6 @@ import {
   query,
   limit,
 } from "./config.js";
-
-console.log("✅ app.js loaded");
-console.log("✅ db object:", db);
 
 // ========== PUSH NOTIFICATIONS FUNCTIONS ==========
 
@@ -328,6 +326,8 @@ async function joinNow() {
 
     console.log("✅ Member added successfully");
 
+    appState.loading = false;
+
     hideWelcomeModal();
     showMainApp();
     updateTexts();
@@ -341,8 +341,6 @@ async function joinNow() {
     setTimeout(() => {
       scheduleDaily10PMNotification(name, appState.currentSchedule);
     }, 1000);
-
-    appState.loading = false;
   } catch (error) {
     appState.loading = false;
     console.error("❌ Join error:", error);
@@ -815,10 +813,9 @@ function switchTab(tab) {
 
 // ========== EVENT LISTENERS ==========
 document.addEventListener("DOMContentLoaded", () => {
+  console.log("✅ DOM Content Loaded");
+  
   document.getElementById("joinBtn").addEventListener("click", joinNow);
-  document
-    .getElementById("settingsBtn")
-    .addEventListener("click", showWelcomeModal);
   document.getElementById("markDoneBtn").addEventListener("click", markDone);
   document
     .getElementById("tabHomeBtn")
@@ -834,26 +831,47 @@ document.addEventListener("DOMContentLoaded", () => {
 window.proposeChange = proposeChange;
 window.voteProposal = voteProposal;
 window.switchTab = switchTab;
-window.showWelcomeModal = showWelcomeModal;
 window.sendTestNotification = sendTestNotification;
 
+// ========== LOAD SETTINGS ==========
 async function loadSettings() {
-  const d = await getDoc(doc(db, "appSettings", "config"));
-  if (d.exists()) {
-    users = d.data().users || users;
+  console.log("🔄 Loading settings...");
+  
+  try {
+    const d = await getDoc(doc(db, "appSettings", "config"));
+    if (d.exists()) {
+      appState.members = d.data().members || {};
+    }
+  } catch (error) {
+    console.error("❌ Error loading members from DB:", error);
   }
 
-  myName = localStorage.getItem("myName");
-  currentLanguage = localStorage.getItem("language") || "en";
+  const myName = localStorage.getItem("myName");
+  const language = localStorage.getItem("language") || "en";
+
+  console.log("📋 Saved name:", myName);
 
   if (!myName) {
+    console.log("👤 No saved user, showing welcome modal");
+    appState.currentLanguage = language;
     showWelcomeModal();
   } else {
+    console.log("✅ User found:", myName);
+    appState.myName = myName;
+    appState.currentLanguage = language;
+    
     hideWelcomeModal();
+    showMainApp();
     updateTexts();
+    
+    loadMembers();
     loadSchedule();
     loadProposals();
     loadHistory();
     listenToAdminNotifications();
+
+    setTimeout(() => {
+      scheduleDaily10PMNotification(myName, appState.currentSchedule);
+    }, 1000);
   }
 }
