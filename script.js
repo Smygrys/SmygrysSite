@@ -11,8 +11,7 @@ import {
   serverTimestamp,
   orderBy,
   query,
-  limit,
-  deleteDoc
+  limit
 } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
 
 // ========== STATE ==========
@@ -32,9 +31,6 @@ const translations = {
     proposalsTitle: "Pending Proposals",
     historyTitle: "History",
     markDoneBtn: "Mark as Done ✓",
-    welcomeTitle: "Welcome to Smygrys Trash",
-    welcomeSubtitle:
-      "🏠 Shared household trash rotation\n📅 Smart scheduling • 🤝 Voting system • 📊 History tracking\nKeep your place organized together",
     noProposals: "No pending proposals",
     votesNeeded: "votes needed",
     voted: "Voted ✓",
@@ -49,9 +45,6 @@ const translations = {
     proposalsTitle: "Oczekujące Propozycje",
     historyTitle: "Historia",
     markDoneBtn: "Oznacz jako Zrobione ✓",
-    welcomeTitle: "Witaj w Smygrys Trash",
-    welcomeSubtitle:
-      "🏠 Wspólna rotacja kosza na śmieci\n📅 Inteligentne harmonogramowanie • 🤝 System głosowania • 📊 Śledzenie historii\nOrganizuj swoje miejsce razem",
     noProposals: "Brak oczekujących propozycji",
     votesNeeded: "głosów potrzebnych",
     voted: "Zagłosowałem ✓",
@@ -66,9 +59,6 @@ const translations = {
     proposalsTitle: "Очікуючі Пропозиції",
     historyTitle: "Історія",
     markDoneBtn: "Позначити як Виконано ✓",
-    welcomeTitle: "Ласкаво просимо до Smygrys Trash",
-    welcomeSubtitle:
-      "🏠 Спільна ротація смітника\n📅 Розумне планування • 🤝 Система голосування • 📊 Відстеження історії\nОрганізуйте своє місце разом",
     noProposals: "Немає очікуючих пропозицій",
     votesNeeded: "голосів потрібно",
     voted: "Проголосував ✓",
@@ -77,12 +67,10 @@ const translations = {
   }
 };
 
-// ========== TRANSLATION FUNCTION ==========
 function t(key) {
   return translations[currentLanguage]?.[key] || key;
 }
 
-// ========== UPDATE ALL TEXTS ==========
 function updateTexts() {
   document.getElementById("appTitle").textContent = t("appTitle");
   document.getElementById("headerSubtitle").textContent = t("headerSubtitle");
@@ -97,14 +85,12 @@ function updateTexts() {
 function showWelcomeModal() {
   const modal = document.getElementById("welcomeModal");
   modal.classList.remove("hidden");
-  modal.classList.add("flex");
   initWelcomeSelectors();
 }
 
 function hideWelcomeModal() {
   const modal = document.getElementById("welcomeModal");
   modal.classList.add("hidden");
-  modal.classList.remove("flex");
 }
 
 function initWelcomeSelectors() {
@@ -133,7 +119,7 @@ window.startApp = () => {
   loadHistory();
 };
 
-// ========== INITIALIZE APP ==========
+// ========== INITIALIZE ==========
 async function loadSettings() {
   const d = await getDoc(doc(db, "appSettings", "config"));
   if (d.exists()) {
@@ -154,7 +140,7 @@ async function loadSettings() {
   }
 }
 
-// ========== GET MONDAY OF CURRENT WEEK ==========
+// ========== GET MONDAY ==========
 function getMonday(d) {
   const date = new Date(d);
   const day = date.getDay();
@@ -195,7 +181,7 @@ function generateSchedule(monday, weekKey) {
   return schedule;
 }
 
-// ========== RENDER TODAY'S PERSON ==========
+// ========== RENDER TODAY ==========
 function renderToday() {
   const todayKey = new Date().toISOString().split("T")[0];
   document.getElementById("todayPerson").textContent =
@@ -208,7 +194,7 @@ function renderToday() {
   );
 }
 
-// ========== RENDER WEEK CARDS ==========
+// ========== RENDER WEEK ==========
 function renderWeek() {
   const container = document.getElementById("weekList");
   container.innerHTML = "";
@@ -267,7 +253,7 @@ function loadProposals() {
     );
 
     if (activeProposals.length === 0) {
-      container.innerHTML = `<p class="text-center text-gray-500 py-5">${t("noProposals")}</p>`;
+      container.innerHTML = `<p style="text-align: center; color: #9ca3af; padding: 2rem 0;">${t("noProposals")}</p>`;
       return;
     }
 
@@ -281,22 +267,24 @@ function loadProposals() {
       const dateObj = new Date(p.dateKey);
       const dayName = dateObj.toLocaleDateString("en-US", { weekday: "short" });
 
+      const hasVoted = (p.votes || []).includes(myName);
+
       div.innerHTML = `
-        <div class="flex justify-between items-start">
-          <div class="flex-1">
+        <div class="proposal-content">
+          <div class="proposal-info">
             <div class="proposal-date">${dayName}</div>
-            <div class="mt-2">
+            <div class="proposal-change">
               <span class="proposal-from">${p.fromPerson}</span>
-              <span class="mx-2">→</span>
+              <span>→</span>
               <span class="proposal-to">${p.toPerson}</span>
             </div>
             <div class="proposal-votes">${votesNeeded} ${t("votesNeeded")}</div>
           </div>
-          <div class="text-right">
+          <div class="proposal-action">
             ${
-              !(p.votes || []).includes(myName)
-                ? `<button class="proposal-btn" onclick="voteProposal('${docSnap.id}')">${t("iAgree")}</button>`
-                : `<span class="proposal-voted">${t("voted")}</span>`
+              !hasVoted
+                ? `<button class="btn-vote" onclick="voteProposal('${docSnap.id}')">${t("iAgree")}</button>`
+                : `<div class="voted-badge">${t("voted")}</div>`
             }
           </div>
         </div>
@@ -311,7 +299,7 @@ function loadProposals() {
   });
 }
 
-// ========== VOTE ON PROPOSAL ==========
+// ========== VOTE ==========
 window.voteProposal = (proposalId) => {
   updateDoc(doc(db, "proposals", proposalId), { votes: arrayUnion(myName) });
 };
@@ -372,7 +360,6 @@ function loadHistory() {
       count[person] = (count[person] || 0) + 1;
     });
 
-    // Render stats
     const statsContainer = document.getElementById("stats");
     statsContainer.innerHTML = users
       .map(
@@ -385,7 +372,6 @@ function loadHistory() {
       )
       .join("");
 
-    // Render history list
     const historyContainer = document.getElementById("historyList");
     historyContainer.innerHTML = snapshot.docs
       .map((d) => {
@@ -415,21 +401,19 @@ window.showTab = (n) => {
 
   const tab0 = document.getElementById("tab0");
   const tab1 = document.getElementById("tab1");
+  const content = document.querySelector(".content");
 
   if (n === 0) {
-    tab0.classList.add("nav-active");
-    tab0.classList.remove("text-gray-500");
-    tab1.classList.remove("nav-active");
-    tab1.classList.add("text-gray-500");
-    document.getElementById("mainApp").parentElement.style.display = "block";
+    tab0.classList.add("active");
+    tab1.classList.remove("active");
+    content.scrollTop = 0;
   } else {
-    tab0.classList.remove("nav-active");
-    tab0.classList.add("text-gray-500");
-    tab1.classList.add("nav-active");
-    tab1.classList.remove("text-gray-500");
+    tab0.classList.remove("active");
+    tab1.classList.add("active");
     loadHistory();
+    content.scrollTop = 0;
   }
 };
 
-// ========== INITIALIZE ON PAGE LOAD ==========
+// ========== INITIALIZE ==========
 window.addEventListener("load", loadSettings);
