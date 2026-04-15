@@ -2,7 +2,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/fireba
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
 
-// ⚠️ SAME CONFIG AS IN config.js
 const firebaseConfig = {
   apiKey: "AIzaSyBINzCHZw_VBSb1IDRhAdYdTe2kLtahPzg",
   authDomain: "trash-ae577.firebaseapp.com",

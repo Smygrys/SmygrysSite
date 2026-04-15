@@ -11,6 +11,9 @@
 </head>
 <body>
 
+  <!-- NOTIFICATION DISPLAY -->
+  <div id="notificationDisplay" class="notification-display hidden"></div>
+
   <!-- LOGIN SCREEN -->
   <div id="loginScreen" class="login-screen">
     <div class="login-card">
@@ -47,6 +50,7 @@
       <button class="nav-tab active" onclick="switchAdminTab('users')">👥 Users</button>
       <button class="nav-tab" onclick="switchAdminTab('notify')">📢 Notifications</button>
       <button class="nav-tab" onclick="switchAdminTab('schedule')">📅 Schedule</button>
+      <button class="nav-tab" onclick="switchAdminTab('prank')">🎉 Prank</button>
     </div>
 
     <!-- USERS TAB -->
@@ -106,6 +110,61 @@
     <div id="scheduleTab" class="admin-tab hidden">
       <h2>Manage Schedule</h2>
       <div class="schedule-container" id="scheduleContainer"></div>
+    </div>
+
+    <!-- PRANK TAB -->
+    <div id="prankTab" class="admin-tab hidden">
+      <h2>🎉 Admin Pranks & Tools</h2>
+      
+      <div class="prank-grid">
+        <!-- Clear History -->
+        <div class="prank-card danger">
+          <div class="prank-icon">🗑️</div>
+          <h3>Clear All History</h3>
+          <p>Delete everyone's trash history (they'll be shocked!)</p>
+          <button class="btn-prank" onclick="clearAllHistory()">Clear History</button>
+        </div>
+
+        <!-- Swap Two Users -->
+        <div class="prank-card warning">
+          <div class="prank-icon">🔄</div>
+          <h3>Swap Days</h3>
+          <p>Swap two users' scheduled days</p>
+          <button class="btn-prank" onclick="swapUserDays()">Swap Days</button>
+        </div>
+
+        <!-- Random Schedule -->
+        <div class="prank-card info">
+          <div class="prank-icon">🎲</div>
+          <h3>Randomize Schedule</h3>
+          <p>Completely randomize this week's schedule</p>
+          <button class="btn-prank" onclick="randomizeSchedule()">Randomize</button>
+        </div>
+
+        <!-- Assign All to One Person -->
+        <div class="prank-card error">
+          <div class="prank-icon">😈</div>
+          <h3>Assign All Days</h3>
+          <p>Assign all days to one lucky person</p>
+          <button class="btn-prank" onclick="assignAllToOne()">Assign All</button>
+        </div>
+
+        <!-- Double Count -->
+        <div class="prank-card success">
+          <div class="prank-icon">📊</div>
+          <h3>Double History</h3>
+          <p>Double everyone's trash counts (confuse them!)</p>
+          <button class="btn-prank" onclick="doubleHistory()">Double It!</button>
+        </div>
+
+        <!-- Reset to Original User Data -->
+        <div class="prank-card purple">
+          <div class="prank-icon">↩️</div>
+          <h3>Reset All</h3>
+          <p>Reset everything to original state</p>
+          <button class="btn-prank" onclick="resetEverything()">Reset All</button>
+        </div>
+      </div>
     </div>
 
   </div>

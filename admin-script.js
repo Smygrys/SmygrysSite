@@ -8,6 +8,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  deleteDoc,
   deleteField,
   collection,
   addDoc,
@@ -372,6 +373,208 @@ async function updateSchedulePerson(dateKey, oldPerson, newPerson) {
   }
 }
 
+// ========== PRANK FUNCTIONS ==========
+
+// Clear all history
+window.clearAllHistory = async () => {
+  if (!confirm("⚠️ This will DELETE ALL HISTORY for EVERYONE!\n\n Are you SURE?")) return;
+  if (!confirm("🎉 Really? This is permanent!")) return;
+
+  try {
+    showNotification("🔄 Clearing all history...", "warning", "⏳");
+    
+    const historyCollection = collection(db, "history");
+    const snapshot = await onSnapshot(historyCollection, async (docs) => {
+      docs.forEach(async (doc) => {
+        await deleteDoc(doc.ref);
+      });
+    });
+
+    setTimeout(() => {
+      showNotification("✅ All history cleared! Users will be confused! 😂", "success", "🎉");
+      sendAdminNotification("📊 History cleared!", "info", "🧹");
+    }, 1000);
+  } catch (error) {
+    console.error("❌ Error:", error);
+    showNotification("❌ Error clearing history", "error", "⚠️");
+  }
+};
+
+// Swap two users' days
+window.swapUserDays = async () => {
+  const members = Object.keys(window.adminState.members);
+  if (members.length < 2) {
+    alert("❌ Need at least 2 users");
+    return;
+  }
+
+  const user1 = prompt(`Select first user:\n\n${members.join("\n")}`, members[0]);
+  if (!user1 || !members.includes(user1)) return;
+
+  const user2 = prompt(`Select second user:\n\n${members.join("\n")}`, members[1]);
+  if (!user2 || !members.includes(user2) || user1 === user2) return;
+
+  try {
+    const monday = getMonday();
+    const weekKey = monday.toISOString().split("T")[0];
+    const scheduleRef = doc(db, "schedules", weekKey);
+    const scheduleDoc = await getDoc(scheduleRef);
+    let schedule = scheduleDoc.exists() ? scheduleDoc.data() : {};
+
+    // Swap all days
+    for (const [dateKey, person] of Object.entries(schedule)) {
+      if (person === user1) schedule[dateKey] = user2;
+      else if (person === user2) schedule[dateKey] = user1;
+    }
+
+    await setDoc(scheduleRef, schedule);
+    showNotification(`🔄 Swapped ${user1} and ${user2}!`, "success", "✅");
+    sendAdminNotification(`🔄 Your schedule swapped with ${user1}!`, "warning", "🔄");
+    renderSchedule();
+  } catch (error) {
+    console.error("❌ Error:", error);
+    showNotification("❌ Error swapping", "error", "⚠️");
+  }
+};
+
+// Randomize schedule
+window.randomizeSchedule = async () => {
+  if (!confirm("🎲 Randomize the entire week schedule?")) return;
+
+  try {
+    const members = Object.keys(window.adminState.members);
+    if (members.length === 0) {
+      alert("❌ No members");
+      return;
+    }
+
+    const monday = getMonday();
+    const weekKey = monday.toISOString().split("T")[0];
+    const scheduleRef = doc(db, "schedules", weekKey);
+    let newSchedule = {};
+
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+    for (let i = 0; i < 5; i++) {
+      const day = new Date(monday);
+      day.setDate(monday.getDate() + i);
+      const dateKey = day.toISOString().split("T")[0];
+      newSchedule[dateKey] = members[Math.floor(Math.random() * members.length)];
+    }
+
+    await setDoc(scheduleRef, newSchedule);
+    showNotification("🎲 Schedule randomized!", "success", "✅");
+    sendAdminNotification("🎲 Schedule randomized! Check it out!", "warning", "🎲");
+    renderSchedule();
+  } catch (error) {
+    console.error("❌ Error:", error);
+    showNotification("❌ Error randomizing", "error", "⚠️");
+  }
+};
+
+// Assign all days to one person
+window.assignAllToOne = async () => {
+  const members = Object.keys(window.adminState.members);
+  if (members.length === 0) {
+    alert("❌ No members");
+    return;
+  }
+
+  const luckyPerson = prompt(`Who gets ALL the trash days?\n\n${members.join("\n")}`, members[0]);
+  if (!luckyPerson || !members.includes(luckyPerson)) return;
+
+  if (!confirm(`⚠️ Really assign ALL days to ${luckyPerson}?`)) return;
+
+  try {
+    const monday = getMonday();
+    const weekKey = monday.toISOString().split("T")[0];
+    const scheduleRef = doc(db, "schedules", weekKey);
+    let newSchedule = {};
+
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+    for (let i = 0; i < 5; i++) {
+      const day = new Date(monday);
+      day.setDate(monday.getDate() + i);
+      const dateKey = day.toISOString().split("T")[0];
+      newSchedule[dateKey] = luckyPerson;
+    }
+
+    await setDoc(scheduleRef, newSchedule);
+    showNotification(`😈 All days assigned to ${luckyPerson}!`, "error", "😈");
+    sendAdminNotification(`😈 ${luckyPerson} got ALL the trash days this week! Good luck!`, "error", "😈");
+    renderSchedule();
+  } catch (error) {
+    console.error("❌ Error:", error);
+    showNotification("❌ Error assigning", "error", "⚠️");
+  }
+};
+
+// Double everyone's history count
+window.doubleHistory = async () => {
+  if (!confirm("📊 Double everyone's trash counts?")) return;
+
+  try {
+    showNotification("📊 Doubling history counts...", "warning", "⏳");
+
+    const historyCollection = collection(db, "history");
+    const snapshot = await onSnapshot(historyCollection, async (docs) => {
+      const newEntries = [];
+      docs.forEach((doc) => {
+        const data = doc.data();
+        newEntries.push({
+          date: serverTimestamp(),
+          person: data.person,
+          markedBy: "Admin"
+        });
+      });
+
+      for (const entry of newEntries) {
+        await addDoc(collection(db, "history"), entry);
+      }
+    });
+
+    setTimeout(() => {
+      showNotification("✅ All counts doubled! 😂", "success", "📊");
+      sendAdminNotification("📊 History counts have doubled! (Admin action)", "info", "📊");
+    }, 1500);
+  } catch (error) {
+    console.error("❌ Error:", error);
+    showNotification("❌ Error doubling", "error", "⚠️");
+  }
+};
+
+// Reset everything
+window.resetEverything = async () => {
+  if (!confirm("⚠️ Reset EVERYTHING to original state?")) return;
+  if (!confirm("🔄 This will clear history AND reset schedule. Sure?")) return;
+
+  try {
+    showNotification("🔄 Resetting...", "warning", "⏳");
+
+    // Clear history
+    const historyCollection = collection(db, "history");
+    await onSnapshot(historyCollection, async (docs) => {
+      docs.forEach(async (doc) => {
+        await deleteDoc(doc.ref);
+      });
+    });
+
+    // Clear schedule
+    const monday = getMonday();
+    const weekKey = monday.toISOString().split("T")[0];
+    await setDoc(doc(db, "schedules", weekKey), {});
+
+    setTimeout(() => {
+      showNotification("✅ Everything reset!", "success", "↩️");
+      sendAdminNotification("↩️ Everything has been reset to original state!", "info", "↩️");
+      renderSchedule();
+      loadAdminData();
+    }, 1500);
+  } catch (error) {
+    console.error("❌ Error:", error);
+    showNotification("❌ Error resetting", "error", "⚠️");
+  }
+};
+
 function getMonday(date = new Date()) {
   const d = new Date(date);
   const day = d.getDay();
@@ -397,6 +600,9 @@ window.switchAdminTab = (tab) => {
   } else if (tab === "schedule") {
     document.getElementById("scheduleTab").classList.remove("hidden");
     navButtons[2].classList.add("active");
+  } else if (tab === "prank") {
+    document.getElementById("prankTab").classList.remove("hidden");
+    navButtons[3].classList.add("active");
   }
 };
 
@@ -430,6 +636,20 @@ function showNotification(message, color = "success", icon = "✅") {
       box.remove();
     }
   }, 4000);
+}
+
+// Send notification to users
+async function sendAdminNotification(message, color, icon) {
+  try {
+    await addDoc(collection(db, "adminNotifications"), {
+      message,
+      color,
+      icon,
+      createdAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error("Error sending notification:", error);
+  }
 }
 
 // ========== ON PAGE LOAD ==========
