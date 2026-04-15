@@ -1,7 +1,148 @@
-// ⚠️ DON'T IMPORT FROM notifications.js - use global functions instead
+// ========== PUSH NOTIFICATIONS FUNCTIONS ==========
 
-import { db } from "./config.js";
-import {
+function notificationsSupported() {
+  return "Notification" in window && "serviceWorker" in navigator;
+}
+
+async function requestNotificationPermission() {
+  if (!notificationsSupported()) {
+    console.log("❌ Notifications not supported");
+    return false;
+  }
+
+  if (Notification.permission === "granted") {
+    console.log("✅ Notifications already enabled");
+    return true;
+  }
+
+  if (Notification.permission !== "denied") {
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        console.log("✅ Notifications enabled");
+        return true;
+      }
+    } catch (error) {
+      console.error("❌ Notification permission error:", error);
+    }
+  }
+
+  return false;
+}
+
+function saveNotificationPreference(enabled) {
+  localStorage.setItem("notificationsEnabled", enabled ? "true" : "false");
+}
+
+function getNotificationPreference() {
+  return localStorage.getItem("notificationsEnabled") !== "false";
+}
+
+async function scheduleDaily10PMNotification(myName, schedule) {
+  if (!notificationsSupported() || !getNotificationPreference()) {
+    console.log("📢 Notifications disabled or not supported");
+    return;
+  }
+
+  console.log("⏰ Notification scheduler started for:", myName);
+
+  checkAndNotify(myName, schedule);
+  setInterval(() => checkAndNotify(myName, schedule), 60000);
+}
+
+function checkAndNotify(myName, schedule) {
+  const now = new Date();
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+
+  if (hours === 22 && minutes === 0) {
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowKey = tomorrow.toISOString().split("T")[0];
+
+    const tomorrowPerson = schedule[tomorrowKey];
+
+    if (tomorrowPerson === myName) {
+      showPhoneNotification(
+        "🗑️ Your Turn Tomorrow!",
+        `You're responsible for trash tomorrow (${getDayName(tomorrow)})`,
+        "🗑️"
+      );
+    }
+
+    if (tomorrowPerson && tomorrowPerson !== myName) {
+      console.log(`📢 Tomorrow is ${tomorrowPerson}'s turn`);
+    }
+  }
+}
+
+function getDayName(date) {
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  return days[date.getDay()];
+}
+
+function showPhoneNotification(title, message, icon) {
+  if (!notificationsSupported() || !getNotificationPreference()) {
+    console.log("📢 Notifications not enabled");
+    return;
+  }
+
+  if (Notification.permission === "granted") {
+    try {
+      const notification = new Notification(title, {
+        body: message,
+        icon: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23a855f7' width='192' height='192' rx='45'/><text x='96' y='96' font-size='100' text-anchor='middle' dominant-baseline='middle'>${icon}</text></svg>`,
+        tag: "trash-rotation-notification",
+        requireInteraction: true,
+        badge: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23a855f7' width='192' height='192' rx='45'/><text x='96' y='96' font-size='100' text-anchor='middle' dominant-baseline='middle'>${icon}</text></svg>`
+      });
+
+      notification.onclick = () => {
+        window.focus();
+        window.parent.focus();
+        notification.close();
+      };
+
+      console.log("✅ Notification sent:", title);
+    } catch (error) {
+      console.error("❌ Error showing notification:", error);
+    }
+  }
+}
+
+async function initNotifications() {
+  if (!notificationsSupported()) {
+    console.log("ℹ️ Notifications not supported on this device");
+    return;
+  }
+
+  if (Notification.permission === "denied") {
+    console.log("📢 User denied notifications");
+    localStorage.setItem("notificationsEnabled", "false");
+    return;
+  }
+
+  if (Notification.permission === "default" && getNotificationPreference()) {
+    const granted = await requestNotificationPermission();
+    if (!granted) {
+      localStorage.setItem("notificationsEnabled", "false");
+    }
+  }
+
+  console.log("✅ Notifications initialized");
+}
+
+function sendTestNotification() {
+  showPhoneNotification(
+    "🗑️ Test Notification",
+    "This is a test. You'll get a real notification at 10 PM when it's your turn!",
+    "✅"
+  );
+}
+
+// ========== FIRESTORE IMPORTS ==========
+
+const {
   collection,
   doc,
   getDoc,
@@ -13,8 +154,10 @@ import {
   serverTimestamp,
   orderBy,
   query,
-  limit,
-} from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+  limit
+} = firebase.firestore;
+
+// ========== APP STATE ==========
 
 window.appState = {
   members: {},
@@ -22,60 +165,60 @@ window.appState = {
   currentLanguage: "en",
   currentSchedule: {},
   unsubscribers: [],
-  loading: false,
+  loading: false
 };
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
 const translations = {
-  en: {
-    appTitle: "Trash Rotation",
-    membersTitle: "Members",
-    todayLabel: "TODAY'S TURN",
-    weekTitle: "This Week",
-    proposalsTitle: "Pending Changes",
-    historyTitle: "History",
-    markDoneBtn: "Done ✓",
-    noProposals: "No pending changes",
-    votesNeeded: "votes needed",
-    voted: "Voted ✓",
-    iAgree: "I Agree",
-    change: "Change",
+  en: { 
+    appTitle: "Trash Rotation", 
+    membersTitle: "Members", 
+    todayLabel: "TODAY'S TURN", 
+    weekTitle: "This Week", 
+    proposalsTitle: "Pending Changes", 
+    historyTitle: "History", 
+    markDoneBtn: "Done ✓", 
+    noProposals: "No pending changes", 
+    votesNeeded: "votes needed", 
+    voted: "Voted ✓", 
+    iAgree: "I Agree", 
+    change: "Change", 
     selectDays: "Select days to continue",
-    enableNotifications: "Enable push notifications at 10 PM",
+    enableNotifications: "Enable push notifications at 10 PM"
   },
-  pl: {
-    appTitle: "Rotacja Śmieci",
-    membersTitle: "Członkowie",
-    todayLabel: "DZISIAJ",
-    weekTitle: "Ten Tydzień",
-    proposalsTitle: "Oczekujące Zmiany",
-    historyTitle: "Historia",
-    markDoneBtn: "Zrobione ✓",
-    noProposals: "Brak oczekujących zmian",
-    votesNeeded: "głosów potrzebnych",
-    voted: "Zagłosowałem ✓",
-    iAgree: "Zgadzam się",
-    change: "Zmień",
+  pl: { 
+    appTitle: "Rotacja Śmieci", 
+    membersTitle: "Członkowie", 
+    todayLabel: "DZISIAJ", 
+    weekTitle: "Ten Tydzień", 
+    proposalsTitle: "Oczekujące Zmiany", 
+    historyTitle: "Historia", 
+    markDoneBtn: "Zrobione ✓", 
+    noProposals: "Brak oczekujących zmian", 
+    votesNeeded: "głosów potrzebnych", 
+    voted: "Zagłosowałem ✓", 
+    iAgree: "Zgadzam się", 
+    change: "Zmień", 
     selectDays: "Wybierz dni aby kontynuować",
-    enableNotifications: "Włącz powiadomienia push o 22:00",
+    enableNotifications: "Włącz powiadomienia push o 22:00"
   },
-  uk: {
-    appTitle: "Ротація Сміття",
-    membersTitle: "Учасники",
-    todayLabel: "СЬОГОДНІ",
-    weekTitle: "Цей Тиждень",
-    proposalsTitle: "Очікуючі Зміни",
-    historyTitle: "Історія",
-    markDoneBtn: "Виконано ✓",
-    noProposals: "Немає очікуючих змін",
-    votesNeeded: "голосів потрібно",
-    voted: "Проголосував ✓",
-    iAgree: "Я згідний",
-    change: "Змінити",
+  uk: { 
+    appTitle: "Ротація Сміття", 
+    membersTitle: "Учасники", 
+    todayLabel: "СЬОГОДНІ", 
+    weekTitle: "Цей Тиждень", 
+    proposalsTitle: "Очікуючі Зміни", 
+    historyTitle: "Історія", 
+    markDoneBtn: "Виконано ✓", 
+    noProposals: "Немає очікуючих змін", 
+    votesNeeded: "голосів потрібно", 
+    voted: "Проголосував ✓", 
+    iAgree: "Я згідний", 
+    change: "Змінити", 
     selectDays: "Виберіть дні для продовження",
-    enableNotifications: "Увімкнути push-сповіщення о 22:00",
-  },
+    enableNotifications: "Увімкнути push-сповіщення о 22:00"
+  }
 };
 
 function t(key) {
@@ -86,16 +229,13 @@ function updateTexts() {
   document.getElementById("title").textContent = "🗑️ " + t("appTitle");
 }
 
-function showWelcomeModal() {
+window.showWelcomeModal = function() {
   document.getElementById("welcomeModal").classList.remove("hidden");
   document.getElementById("nameInput").value = "";
   document.getElementById("langSelect").value = window.appState.currentLanguage;
-  document
-    .querySelectorAll(".day-checkbox input")
-    .forEach((cb) => (cb.checked = false));
-  document.getElementById("enableNotifications").checked =
-    getNotificationPreference();
-}
+  document.querySelectorAll(".day-checkbox input").forEach(cb => cb.checked = false);
+  document.getElementById("enableNotifications").checked = getNotificationPreference();
+};
 
 function hideWelcomeModal() {
   document.getElementById("welcomeModal").classList.add("hidden");
@@ -107,7 +247,7 @@ function showMainApp() {
 }
 
 // ========== JOIN NOW ==========
-window.joinNow = async () => {
+window.joinNow = async function() {
   if (window.appState.loading) return;
 
   const name = document.getElementById("nameInput").value.trim();
@@ -142,15 +282,13 @@ window.joinNow = async () => {
     localStorage.setItem("myName", name);
     localStorage.setItem("language", lang);
     
-    // Save notification preference
-    window.saveNotificationPreference(enableNotif);
+    saveNotificationPreference(enableNotif);
     
-    // Request permission if user wants notifications
     if (enableNotif) {
-      await window.requestNotificationPermission();
+      await requestNotificationPermission();
     }
 
-    const configRef = doc(db, "appSettings", "config");
+    const configRef = doc(window.db, "appSettings", "config");
     
     const configDoc = await getDoc(configRef);
     
@@ -180,22 +318,22 @@ window.joinNow = async () => {
     loadHistory();
     listenToAdminNotifications();
     
-    // Start notification scheduler
     setTimeout(() => {
-      window.scheduleDaily10PMNotification(name, window.appState.currentSchedule);
+      scheduleDaily10PMNotification(name, window.appState.currentSchedule);
     }, 1000);
 
     window.appState.loading = false;
   } catch (error) {
     window.appState.loading = false;
     console.error("❌ Join error:", error);
-    alert("❌ Error: " + error.message + "\n\nMake sure:\n1. Firebase is configured\n2. Firestore is enabled\n3. Rules allow read/write");
+    alert("❌ Error: " + error.message);
   }
-};  
+};
+
 // ========== LOAD MEMBERS ==========
 function loadMembers() {
   const unsubscribe = onSnapshot(
-    doc(db, "appSettings", "config"),
+    doc(window.db, "appSettings", "config"),
     (docSnap) => {
       if (docSnap.exists()) {
         window.appState.members = docSnap.data().members || {};
@@ -205,7 +343,7 @@ function loadMembers() {
     },
     (error) => {
       console.error("❌ Error loading members:", error);
-    },
+    }
   );
   window.appState.unsubscribers.push(unsubscribe);
 }
@@ -217,8 +355,7 @@ function renderMembers() {
   const entries = Object.entries(window.appState.members);
 
   if (entries.length === 0) {
-    container.innerHTML =
-      '<p style="text-align:center;color:#9ca3af;padding:2rem">No members yet. Be first to join!</p>';
+    container.innerHTML = '<p style="text-align:center;color:#9ca3af;padding:2rem">No members yet. Be first to join!</p>';
     return;
   }
 
@@ -230,14 +367,9 @@ function renderMembers() {
     const isMe = name === window.appState.myName;
     const youLabel = isMe ? " (you)" : "";
 
-    const daysHtml =
-      days.length > 0
-        ? days
-            .map(
-              (d) => `<span class="day-tag assigned">${d.slice(0, 3)}</span>`,
-            )
-            .join("")
-        : '<span class="day-tag">Random</span>';
+    const daysHtml = days.length > 0 
+      ? days.map(d => `<span class="day-tag assigned">${d.slice(0,3)}</span>`).join("")
+      : '<span class="day-tag">Random</span>';
 
     div.innerHTML = `
       <div class="member-header">
@@ -258,7 +390,7 @@ function regenerateSchedule() {
   const members = Object.entries(window.appState.members);
 
   if (members.length === 0) {
-    setDoc(doc(db, "schedules", weekKey), {});
+    setDoc(doc(window.db, "schedules", weekKey), {});
     return;
   }
 
@@ -268,21 +400,19 @@ function regenerateSchedule() {
     const dateKey = day.toISOString().split("T")[0];
     const dayName = DAYS[i];
 
-    const preferring = members.filter(
-      ([, data]) => data.days && data.days.includes(dayName),
+    const preferring = members.filter(([, data]) => 
+      data.days && data.days.includes(dayName)
     );
 
     if (preferring.length > 0) {
-      schedule[dateKey] =
-        preferring[Math.floor(Math.random() * preferring.length)][0];
+      schedule[dateKey] = preferring[Math.floor(Math.random() * preferring.length)][0];
     } else {
-      schedule[dateKey] =
-        members[Math.floor(Math.random() * members.length)][0];
+      schedule[dateKey] = members[Math.floor(Math.random() * members.length)][0];
     }
   }
 
   try {
-    setDoc(doc(db, "schedules", weekKey), schedule);
+    setDoc(doc(window.db, "schedules", weekKey), schedule);
   } catch (error) {
     console.error("Error saving schedule:", error);
   }
@@ -301,14 +431,14 @@ function loadSchedule() {
   const weekKey = monday.toISOString().split("T")[0];
 
   const unsubscribe = onSnapshot(
-    doc(db, "schedules", weekKey),
+    doc(window.db, "schedules", weekKey),
     (docSnap) => {
       window.appState.currentSchedule = docSnap.exists() ? docSnap.data() : {};
       renderToday();
       renderWeek();
       renderCalendarWidget();
     },
-    (error) => console.error("❌ Error loading schedule:", error),
+    (error) => console.error("❌ Error loading schedule:", error)
   );
   window.appState.unsubscribers.push(unsubscribe);
 }
@@ -319,8 +449,7 @@ function renderToday() {
   document.getElementById("todayPerson").textContent = person;
 
   const options = { weekday: "long", month: "long", day: "numeric" };
-  document.getElementById("todayDate").textContent =
-    new Date().toLocaleDateString("en-US", options);
+  document.getElementById("todayDate").textContent = new Date().toLocaleDateString("en-US", options);
 }
 
 function renderWeek() {
@@ -357,7 +486,7 @@ function renderWeek() {
 function renderCalendarWidget() {
   const container = document.getElementById("calendarWidget");
   if (!container) return;
-
+  
   container.innerHTML = "";
 
   const today = new Date().toISOString().split("T")[0];
@@ -385,9 +514,9 @@ function renderCalendarWidget() {
   }
 }
 
-window.proposeChange = (dateKey, currentPerson) => {
+window.proposeChange = function(dateKey, currentPerson) {
   const memberNames = Object.keys(window.appState.members);
-  const others = memberNames.filter((m) => m !== currentPerson);
+  const others = memberNames.filter(m => m !== currentPerson);
 
   if (others.length === 0) {
     alert("No other members");
@@ -396,19 +525,19 @@ window.proposeChange = (dateKey, currentPerson) => {
 
   const newPerson = prompt(
     `Change ${currentPerson} to?\n${others.join(" / ")}`,
-    others[0],
+    others[0]
   );
 
   if (!newPerson || !memberNames.includes(newPerson)) return;
 
   try {
-    addDoc(collection(db, "proposals"), {
+    addDoc(collection(window.db, "proposals"), {
       dateKey,
       fromPerson: currentPerson,
       toPerson: newPerson,
       votes: [window.appState.myName],
       createdAt: serverTimestamp(),
-      status: "pending",
+      status: "pending"
     });
   } catch (error) {
     console.error("❌ Error proposing change:", error);
@@ -416,40 +545,34 @@ window.proposeChange = (dateKey, currentPerson) => {
 };
 
 function loadProposals() {
-  const q = query(collection(db, "proposals"), orderBy("createdAt", "desc"));
+  const q = query(collection(window.db, "proposals"), orderBy("createdAt", "desc"));
 
-  const unsubscribe = onSnapshot(
-    q,
-    (snapshot) => {
-      const container = document.getElementById("proposalsList");
-      container.innerHTML = "";
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const container = document.getElementById("proposalsList");
+    container.innerHTML = "";
 
-      const pending = snapshot.docs.filter(
-        (d) => d.data().status === "pending",
-      );
+    const pending = snapshot.docs.filter(d => d.data().status === "pending");
 
-      if (pending.length === 0) {
-        container.innerHTML = `<p style="text-align:center;color:#9ca3af;padding:2rem">No pending changes</p>`;
-        return;
-      }
+    if (pending.length === 0) {
+      container.innerHTML = `<p style="text-align:center;color:#9ca3af;padding:2rem">No pending changes</p>`;
+      return;
+    }
 
-      const memberCount = Object.keys(window.appState.members).length;
+    const memberCount = Object.keys(window.appState.members).length;
 
-      pending.forEach((docSnap) => {
-        const p = docSnap.data();
-        const votes = p.votes || [];
-        const votesNeeded = memberCount - votes.length;
-        const hasVoted = votes.includes(window.appState.myName);
+    pending.forEach((docSnap) => {
+      const p = docSnap.data();
+      const votes = p.votes || [];
+      const votesNeeded = memberCount - votes.length;
+      const hasVoted = votes.includes(window.appState.myName);
 
-        const div = document.createElement("div");
-        div.className = "proposal-card";
+      const div = document.createElement("div");
+      div.className = "proposal-card";
 
-        const dateObj = new Date(p.dateKey);
-        const dayName = dateObj.toLocaleDateString("en-US", {
-          weekday: "short",
-        });
+      const dateObj = new Date(p.dateKey);
+      const dayName = dateObj.toLocaleDateString("en-US", { weekday: "short" });
 
-        div.innerHTML = `
+      div.innerHTML = `
         <div class="proposal-content">
           <div class="proposal-info">
             <div class="proposal-date">${dayName}</div>
@@ -466,23 +589,21 @@ function loadProposals() {
         </div>
       `;
 
-        container.appendChild(div);
+      container.appendChild(div);
 
-        if (votes.length >= memberCount) {
-          applyProposal(docSnap.id, p);
-        }
-      });
-    },
-    (error) => console.error("❌ Error loading proposals:", error),
-  );
+      if (votes.length >= memberCount) {
+        applyProposal(docSnap.id, p);
+      }
+    });
+  }, (error) => console.error("❌ Error loading proposals:", error));
 
   window.appState.unsubscribers.push(unsubscribe);
 }
 
-window.voteProposal = (proposalId) => {
+window.voteProposal = function(proposalId) {
   try {
-    updateDoc(doc(db, "proposals", proposalId), {
-      votes: arrayUnion(window.appState.myName),
+    updateDoc(doc(window.db, "proposals", proposalId), {
+      votes: arrayUnion(window.appState.myName)
     });
   } catch (error) {
     console.error("❌ Error voting:", error);
@@ -491,10 +612,8 @@ window.voteProposal = (proposalId) => {
 
 async function applyProposal(proposalId, proposal) {
   try {
-    const weekKey = getMonday(new Date(proposal.dateKey))
-      .toISOString()
-      .split("T")[0];
-    const scheduleRef = doc(db, "schedules", weekKey);
+    const weekKey = getMonday(new Date(proposal.dateKey)).toISOString().split("T")[0];
+    const scheduleRef = doc(window.db, "schedules", weekKey);
     const scheduleDoc = await getDoc(scheduleRef);
 
     if (scheduleDoc.exists()) {
@@ -503,7 +622,7 @@ async function applyProposal(proposalId, proposal) {
       await setDoc(scheduleRef, schedule);
     }
 
-    await updateDoc(doc(db, "proposals", proposalId), { status: "applied" });
+    await updateDoc(doc(window.db, "proposals", proposalId), { status: "applied" });
     renderToday();
     renderWeek();
     renderCalendarWidget();
@@ -512,7 +631,7 @@ async function applyProposal(proposalId, proposal) {
   }
 }
 
-window.markDone = () => {
+window.markDone = function() {
   const today = new Date().toISOString().split("T")[0];
   const person = window.appState.currentSchedule[today];
 
@@ -522,10 +641,10 @@ window.markDone = () => {
   }
 
   try {
-    addDoc(collection(db, "history"), {
+    addDoc(collection(window.db, "history"), {
       date: serverTimestamp(),
       person: person,
-      markedBy: window.appState.myName,
+      markedBy: window.appState.myName
     });
 
     alert("✅ Done!");
@@ -536,65 +655,51 @@ window.markDone = () => {
 };
 
 function loadHistory() {
-  const q = query(
-    collection(db, "history"),
-    orderBy("date", "desc"),
-    limit(100),
-  );
+  const q = query(collection(window.db, "history"), orderBy("date", "desc"), limit(100));
 
-  const unsubscribe = onSnapshot(
-    q,
-    (snapshot) => {
-      let count = {};
-      Object.keys(window.appState.members).forEach((m) => (count[m] = 0));
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    let count = {};
+    Object.keys(window.appState.members).forEach(m => count[m] = 0);
 
-      snapshot.forEach((d) => {
-        const person = d.data().person;
-        if (count.hasOwnProperty(person)) count[person]++;
-      });
+    snapshot.forEach(d => {
+      const person = d.data().person;
+      if (count.hasOwnProperty(person)) count[person]++;
+    });
 
-      const statsContainer = document.getElementById("stats");
-      statsContainer.innerHTML = Object.entries(count)
-        .map(
-          ([name, cnt]) =>
-            `<div class="stat-card"><div class="stat-number">${cnt}</div><div class="stat-name">${name}</div></div>`,
-        )
-        .join("");
+    const statsContainer = document.getElementById("stats");
+    statsContainer.innerHTML = Object.entries(count)
+      .map(([name, cnt]) => `<div class="stat-card"><div class="stat-number">${cnt}</div><div class="stat-name">${name}</div></div>`)
+      .join("");
 
-      const historyContainer = document.getElementById("historyList");
-      historyContainer.innerHTML = snapshot.docs
-        .map((d) => {
-          const data = d.data();
-          const date = data.date
-            ? new Date(data.date.seconds * 1000)
-            : new Date();
-          return `<div class="history-item"><div class="history-person">${data.person}</div><div class="history-date">${date.toLocaleDateString()}</div></div>`;
-        })
-        .join("");
-    },
-    (error) => console.error("❌ Error loading history:", error),
-  );
+    const historyContainer = document.getElementById("historyList");
+    historyContainer.innerHTML = snapshot.docs
+      .map(d => {
+        const data = d.data();
+        const date = data.date ? new Date(data.date.seconds * 1000) : new Date();
+        return `<div class="history-item"><div class="history-person">${data.person}</div><div class="history-date">${date.toLocaleDateString()}</div></div>`;
+      })
+      .join("");
+  }, (error) => console.error("❌ Error loading history:", error));
 
   window.appState.unsubscribers.push(unsubscribe);
 }
 
-// ========== LISTEN TO ADMIN NOTIFICATIONS ==========
 function listenToAdminNotifications() {
   const q = query(
-    collection(db, "adminNotifications"),
+    collection(window.db, "adminNotifications"),
     orderBy("createdAt", "desc"),
-    limit(1),
+    limit(1)
   );
 
   onSnapshot(q, (snapshot) => {
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      
       if (data.createdAt) {
         const createdTime = new Date(data.createdAt.seconds * 1000);
         const now = new Date();
         const timeDiff = now - createdTime;
-
+        
         if (timeDiff < 5000) {
           showUserNotification(data.message, data.color, data.icon);
         }
@@ -605,7 +710,7 @@ function listenToAdminNotifications() {
 
 function showUserNotification(message, color = "success", icon = "✅") {
   let display = document.getElementById("notificationDisplay");
-
+  
   if (!display) {
     const div = document.createElement("div");
     div.id = "notificationDisplay";
@@ -634,7 +739,7 @@ function showUserNotification(message, color = "success", icon = "✅") {
   }, 4000);
 }
 
-window.switchTab = (tab) => {
+window.switchTab = function(tab) {
   const contentHome = document.getElementById("contentHome");
   const contentHistory = document.getElementById("contentHistory");
   const btns = document.querySelectorAll(".nav-btn");
@@ -660,11 +765,10 @@ async function initializeApp() {
   window.appState.currentLanguage = savedLang;
   updateTexts();
 
-  // Initialize notifications
-  await window.initNotifications();
+  await initNotifications();
 
   try {
-    const configDoc = await getDoc(doc(db, "appSettings", "config"));
+    const configDoc = await getDoc(doc(window.db, "appSettings", "config"));
     window.appState.members = configDoc.exists() ? (configDoc.data().members || {}) : {};
     console.log("✅ Loaded members:", window.appState.members);
   } catch (error) {
@@ -682,13 +786,12 @@ async function initializeApp() {
     loadHistory();
     listenToAdminNotifications();
     
-    // Start notification scheduler
     setTimeout(() => {
-      window.scheduleDaily10PMNotification(savedName, window.appState.currentSchedule);
+      scheduleDaily10PMNotification(savedName, window.appState.currentSchedule);
     }, 1000);
   } else {
     console.log("🔒 Showing welcome modal");
-    showWelcomeModal();
+    window.showWelcomeModal();
   }
 }
 
