@@ -41,6 +41,11 @@ function updateTexts() {
 
 function showWelcomeModal() {
   document.getElementById("welcomeModal").classList.remove("hidden");
+  // Clear the form when opening modal
+  document.getElementById("nameInput").value = "";
+  document.getElementById("langSelect").value = window.appState.currentLanguage;
+  // Uncheck all days
+  document.querySelectorAll(".day-checkbox input").forEach(cb => cb.checked = false);
 }
 
 function hideWelcomeModal() {
@@ -64,6 +69,12 @@ window.joinNow = async () => {
     return;
   }
 
+  // Check if name already exists
+  if (window.appState.members[name]) {
+    alert(`❌ "${name}" is already taken. Please choose another name.`);
+    return;
+  }
+
   const dayCheckboxes = document.querySelectorAll(".day-checkbox input:checked");
   const days = Array.from(dayCheckboxes).map(cb => cb.value);
 
@@ -73,7 +84,7 @@ window.joinNow = async () => {
   }
 
   window.appState.loading = true;
-  console.log("🚀 Joining with name:", name, "days:", days);
+  console.log("🚀 User joining with name:", name, "days:", days);
 
   try {
     window.appState.myName = name;
@@ -91,6 +102,7 @@ window.joinNow = async () => {
       members = configDoc.data().members || {};
     }
 
+    // Add this new member with their own name
     members[name] = {
       days: days,
       joinedAt: new Date().toISOString()
@@ -154,13 +166,17 @@ function renderMembers() {
     const div = document.createElement("div");
     div.className = "member-card";
 
+    // Show who YOU are
+    const isMe = name === window.appState.myName;
+    const youLabel = isMe ? " (you)" : "";
+
     const daysHtml = days.length > 0 
       ? days.map(d => `<span class="day-tag assigned">${d.slice(0,3)}</span>`).join("")
       : '<span class="day-tag">Random</span>';
 
     div.innerHTML = `
       <div class="member-header">
-        <div class="member-name">${name}${name === window.appState.myName ? " (you)" : ""}</div>
+        <div class="member-name">${name}${youLabel}</div>
         <div class="member-count">#${entries.length}</div>
       </div>
       <div class="member-days">${daysHtml}</div>
@@ -187,13 +203,16 @@ function regenerateSchedule() {
     const dateKey = day.toISOString().split("T")[0];
     const dayName = DAYS[i];
 
+    // Find members who prefer this day
     const preferring = members.filter(([, data]) => 
       data.days && data.days.includes(dayName)
     );
 
     if (preferring.length > 0) {
+      // Randomly pick one from those who prefer this day
       schedule[dateKey] = preferring[Math.floor(Math.random() * preferring.length)][0];
     } else {
+      // Random from all members
       schedule[dateKey] = members[Math.floor(Math.random() * members.length)][0];
     }
   }
@@ -454,6 +473,7 @@ function listenToAdminNotifications() {
         const now = new Date();
         const timeDiff = now - createdTime;
         
+        // Only show if less than 5 seconds old (new notification)
         if (timeDiff < 5000) {
           showUserNotification(data.message, data.color, data.icon);
         }
@@ -527,6 +547,7 @@ async function initializeApp() {
     console.error("❌ Error:", error);
   }
 
+  // Check if user already joined
   if (savedName && window.appState.members[savedName]) {
     console.log("🔓 User already joined:", savedName);
     window.appState.myName = savedName;
@@ -538,7 +559,7 @@ async function initializeApp() {
     loadHistory();
     listenToAdminNotifications();
   } else {
-    console.log("🔒 Showing welcome modal");
+    console.log("🔒 Showing welcome modal - user needs to join");
     showWelcomeModal();
   }
 }
