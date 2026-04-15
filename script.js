@@ -1,296 +1,435 @@
-// script.js - WERSJA OSTATECZNA ZE STREAMINGIEM
-document.addEventListener('DOMContentLoaded', () => {
-    const chatsContainer = document.querySelector(".chats-container");
-    const promptForm = document.querySelector(".prompt-form");
-    const promptInput = document.querySelector(".prompt-input");
-    const suggestionsList = document.querySelector(".suggestions");
-    const deleteChatsBtn = document.getElementById("delete-chats-btn");
-    const themeToggleBtn = document.getElementById("theme-toggle-btn");
-    const addFileBtn = document.getElementById("add-file-btn");
+import { db } from "./config.js";
+import {
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  addDoc,
+  updateDoc,
+  onSnapshot,
+  arrayUnion,
+  serverTimestamp,
+  orderBy,
+  query,
+  limit,
+  deleteDoc
+} from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
 
-    const API_URL = 'http://localhost:3000/api/chat'; 
-    const DELETE_URL = 'http://localhost:3000/api/delete-history';
+// ========== STATE ==========
+let users = ["Ivan", "Kamil", "Wojtek"];
+let myName = "";
+let currentLanguage = "en";
+let currentSchedule = {};
+let currentTab = 0;
 
-    let sessionId = localStorage.getItem('sessionId') || `session-${Date.now()}`;
-    localStorage.setItem('sessionId', sessionId);
-    
-    let attachedFile = null; 
+// ========== TRANSLATIONS ==========
+const translations = {
+  en: {
+    appTitle: "🗑️ Trash Bin",
+    headerSubtitle: "Shared Rotation",
+    todayLabel: "TODAY'S RESPONSIBLE",
+    weekTitle: "This Week",
+    proposalsTitle: "Pending Proposals",
+    historyTitle: "History",
+    markDoneBtn: "Mark as Done ✓",
+    welcomeTitle: "Welcome to Smygrys Trash",
+    welcomeSubtitle:
+      "🏠 Shared household trash rotation\n📅 Smart scheduling • 🤝 Voting system • 📊 History tracking\nKeep your place organized together",
+    noProposals: "No pending proposals",
+    votesNeeded: "votes needed",
+    voted: "Voted ✓",
+    iAgree: "I Agree",
+    change: "Change"
+  },
+  pl: {
+    appTitle: "🗑️ Kosz na Śmieci",
+    headerSubtitle: "Wspólna Rotacja",
+    todayLabel: "DZISIAJ ODPOWIEDZIALNY",
+    weekTitle: "Ten Tydzień",
+    proposalsTitle: "Oczekujące Propozycje",
+    historyTitle: "Historia",
+    markDoneBtn: "Oznacz jako Zrobione ✓",
+    welcomeTitle: "Witaj w Smygrys Trash",
+    welcomeSubtitle:
+      "🏠 Wspólna rotacja kosza na śmieci\n📅 Inteligentne harmonogramowanie • 🤝 System głosowania • 📊 Śledzenie historii\nOrganizuj swoje miejsce razem",
+    noProposals: "Brak oczekujących propozycji",
+    votesNeeded: "głosów potrzebnych",
+    voted: "Zagłosowałem ✓",
+    iAgree: "Zgadzam się",
+    change: "Zmień"
+  },
+  uk: {
+    appTitle: "🗑️ Сміттєвий Кошик",
+    headerSubtitle: "Спільна Ротація",
+    todayLabel: "СЬОГОДНІ ВІДПОВІДАЛЬНИЙ",
+    weekTitle: "Цей Тиждень",
+    proposalsTitle: "Очікуючі Пропозиції",
+    historyTitle: "Історія",
+    markDoneBtn: "Позначити як Виконано ✓",
+    welcomeTitle: "Ласкаво просимо до Smygrys Trash",
+    welcomeSubtitle:
+      "🏠 Спільна ротація смітника\n📅 Розумне планування • 🤝 Система голосування • 📊 Відстеження історії\nОрганізуйте своє місце разом",
+    noProposals: "Немає очікуючих пропозицій",
+    votesNeeded: "голосів потрібно",
+    voted: "Проголосував ✓",
+    iAgree: "Я згідний",
+    change: "Змінити"
+  }
+};
 
-    // --- FUNKCJE POMOCNICZE ---
+// ========== TRANSLATION FUNCTION ==========
+function t(key) {
+  return translations[currentLanguage]?.[key] || key;
+}
 
-    // Funkcja do konwersji Markdown na HTML
-    function convertMarkdownToHtml(markdown) {
-        if (!markdown) return '';
-        let html = markdown;
+// ========== UPDATE ALL TEXTS ==========
+function updateTexts() {
+  document.getElementById("appTitle").textContent = t("appTitle");
+  document.getElementById("headerSubtitle").textContent = t("headerSubtitle");
+  document.getElementById("todayLabel").textContent = t("todayLabel");
+  document.getElementById("weekTitle").textContent = t("weekTitle");
+  document.getElementById("proposalsTitle").textContent = t("proposalsTitle");
+  document.getElementById("historyTitle").textContent = t("historyTitle");
+  document.getElementById("markDoneBtn").textContent = t("markDoneBtn");
+}
 
-        // 1. Bloki kodu
-        html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => 
-            `<pre><code class="language-${lang}">${code.trim()}</code></pre>`);
-            
-        // 2. Kod inline 
-        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-        
-        // 3. Nagłówki H3 
-        html = html.replace(/\n### (.*)/g, '\n<h3>$1</h3>');
-        html = html.replace(/\*\*(.*?)\*\*/g, '<h3>$1</h3>'); 
-        
-        // 4. Listy Punktowane
-        html = html.replace(/(\n[*-]\s+.*)+/g, (match) => {
-            let listHtml = '<ul>';
-            match.trim().split('\n').forEach(line => {
-                const trimmedLine = line.trim();
-                if (trimmedLine.match(/^[*-]\s+/)) {
-                    // Usuń potencjalne znaczniki Markdown z li
-                    const listItemText = trimmedLine.substring(2).trim(); 
-                    listHtml += `<li>${listItemText}</li>`;
-                }
-            });
-            return listHtml + '</ul>';
-        });
+// ========== WELCOME MODAL ==========
+function showWelcomeModal() {
+  const modal = document.getElementById("welcomeModal");
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+  initWelcomeSelectors();
+}
 
-        // 5. Listy Numerowane
-        html = html.replace(/(\n\d+\.\s+.*)+/g, (match) => {
-            let listHtml = '<ol>';
-            match.trim().split('\n').forEach(line => {
-                const trimmedLine = line.trim();
-                if (trimmedLine.match(/^\d+\.\s+/)) {
-                    const listItemText = trimmedLine.replace(/^\d+\.\s+/, '').trim();
-                    listHtml += `<li>${listItemText}</li>`;
-                }
-            });
-            return listHtml + '</ol>';
-        });
-        
-        // 6. Akapity (owinięcie linii tekstu, które nie są listami/kodem w <p>)
-        html = html.split('\n').map(line => {
-            const trimmed = line.trim();
-            // Sprawdź, czy linia jest pusta LUB zaczyna się od znacznika, który już obsłużyliśmy
-            if (trimmed === '' || trimmed.match(/^(<pre|<ul|<ol|<h3)/) || line.includes('</')) {
-                return line;
-            }
-            return `<p>${line}</p>`;
-        }).join('');
+function hideWelcomeModal() {
+  const modal = document.getElementById("welcomeModal");
+  modal.classList.add("hidden");
+  modal.classList.remove("flex");
+}
 
-        // Usuń puste akapity
-        html = html.replace(/<p>\s*<\/p>/g, '');
+function initWelcomeSelectors() {
+  const nameInput = document.getElementById("welcomeNameInput");
+  nameInput.value = myName || "";
+  nameInput.focus();
+  document.getElementById("welcomeLanguageSelect").value = currentLanguage;
+}
 
-        return html;
+window.startApp = () => {
+  const nameInput = document.getElementById("welcomeNameInput").value.trim();
+
+  if (!nameInput) {
+    alert("Please enter your name");
+    return;
+  }
+
+  myName = nameInput;
+  currentLanguage = document.getElementById("welcomeLanguageSelect").value;
+  localStorage.setItem("myName", myName);
+  localStorage.setItem("language", currentLanguage);
+  hideWelcomeModal();
+  updateTexts();
+  loadSchedule();
+  loadProposals();
+  loadHistory();
+};
+
+// ========== INITIALIZE APP ==========
+async function loadSettings() {
+  const d = await getDoc(doc(db, "appSettings", "config"));
+  if (d.exists()) {
+    users = d.data().users || users;
+  }
+
+  myName = localStorage.getItem("myName");
+  currentLanguage = localStorage.getItem("language") || "en";
+
+  if (!myName) {
+    showWelcomeModal();
+  } else {
+    hideWelcomeModal();
+    updateTexts();
+    loadSchedule();
+    loadProposals();
+    loadHistory();
+  }
+}
+
+// ========== GET MONDAY OF CURRENT WEEK ==========
+function getMonday(d) {
+  const date = new Date(d);
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(date.setDate(diff));
+}
+
+// ========== LOAD SCHEDULE ==========
+function loadSchedule() {
+  const monday = getMonday(new Date());
+  const weekKey = monday.toISOString().split("T")[0];
+
+  getDoc(doc(db, "schedules", weekKey)).then((docSnap) => {
+    currentSchedule = docSnap.exists()
+      ? docSnap.data()
+      : generateSchedule(monday, weekKey);
+    renderToday();
+    renderWeek();
+  });
+}
+
+// ========== GENERATE SCHEDULE ==========
+function generateSchedule(monday, weekKey) {
+  const schedule = {};
+  for (let i = 0; i < 7; i++) {
+    const day = new Date(monday);
+    day.setDate(monday.getDate() + i);
+    const key = day.toISOString().split("T")[0];
+    const weekday = day.getDay();
+
+    if (weekday === 1) schedule[key] = users[0];
+    else if (weekday === 2) schedule[key] = users[1];
+    else if (weekday === 3) schedule[key] = users[2];
+    else schedule[key] = users[Math.floor(Math.random() * 3)];
+  }
+
+  setDoc(doc(db, "schedules", weekKey), schedule);
+  return schedule;
+}
+
+// ========== RENDER TODAY'S PERSON ==========
+function renderToday() {
+  const todayKey = new Date().toISOString().split("T")[0];
+  document.getElementById("todayPerson").textContent =
+    currentSchedule[todayKey] || "—";
+
+  const options = { weekday: "long", month: "long", day: "numeric" };
+  document.getElementById("todayDate").textContent = new Date().toLocaleDateString(
+    currentLanguage === "pl" ? "pl-PL" : currentLanguage === "uk" ? "uk-UA" : "en-US",
+    options
+  );
+}
+
+// ========== RENDER WEEK CARDS ==========
+function renderWeek() {
+  const container = document.getElementById("weekList");
+  container.innerHTML = "";
+
+  Object.keys(currentSchedule)
+    .sort()
+    .forEach((key) => {
+      const date = new Date(key);
+      const isToday = key === new Date().toISOString().split("T")[0];
+      const person = currentSchedule[key];
+
+      const div = document.createElement("div");
+      div.className = `week-card ${isToday ? "today" : "other"}`;
+
+      const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
+
+      div.innerHTML = `
+        <div class="week-card-day">${dayName}</div>
+        <div class="week-card-date">${date.getDate()}</div>
+        <div class="week-card-person">${person}</div>
+        <button class="week-card-btn" onclick="proposeChange('${key}', '${person}')">${t("change")}</button>
+      `;
+
+      container.appendChild(div);
+    });
+}
+
+// ========== PROPOSE CHANGE ==========
+window.proposeChange = (dateKey, currentPerson) => {
+  const otherUsers = users.filter((u) => u !== currentPerson);
+  const newPerson = prompt(
+    `Change ${currentPerson} to who?\n${otherUsers.join(" / ")}`,
+    otherUsers[0]
+  );
+
+  if (!newPerson || !users.includes(newPerson)) return;
+
+  addDoc(collection(db, "proposals"), {
+    dateKey,
+    fromPerson: currentPerson,
+    toPerson: newPerson,
+    votes: [myName],
+    createdAt: serverTimestamp()
+  });
+};
+
+// ========== LOAD PROPOSALS ==========
+function loadProposals() {
+  const q = query(collection(db, "proposals"), orderBy("createdAt", "desc"));
+  onSnapshot(q, (snapshot) => {
+    const container = document.getElementById("proposalsList");
+    container.innerHTML = "";
+
+    const activeProposals = snapshot.docs.filter(
+      (d) => d.data().status !== "applied"
+    );
+
+    if (activeProposals.length === 0) {
+      container.innerHTML = `<p class="text-center text-gray-500 py-5">${t("noProposals")}</p>`;
+      return;
     }
 
+    activeProposals.forEach((docSnap) => {
+      const p = docSnap.data();
+      const votesNeeded = 3 - (p.votes ? p.votes.length : 0);
 
-    const createMsgElement = (content, ...classes) => {
-        const div = document.createElement("div");
-        div.classList.add("message", ...classes);
-        div.innerHTML = content;
-        return div;
-    };
+      const div = document.createElement("div");
+      div.className = "proposal-card";
 
-    const scrollToBottom = () => {
-        chatsContainer.scrollTop = chatsContainer.scrollHeight;
-    };
+      const dateObj = new Date(p.dateKey);
+      const dayName = dateObj.toLocaleDateString("en-US", { weekday: "short" });
 
-    const toggleInitialContent = (showChat) => {
-        const header = document.querySelector(".app-header");
-        const suggestions = document.querySelector(".suggestions");
-        const hasMessages = chatsContainer.children.length > 0;
-        
-        if (showChat || hasMessages) {
-            header.style.display = 'none';
-            suggestions.style.display = 'none';
-        } else {
-            header.style.display = 'block';
-            suggestions.style.display = 'flex';
-        }
-    };
-    
-    const initTheme = () => {
-        const isLight = localStorage.getItem('theme') === 'light';
-        document.body.classList.toggle('light-mode', isLight);
-        themeToggleBtn.textContent = isLight ? 'dark_mode' : 'light_mode';
-    };
-
-    // --- NOWA FUNKCJA GENERATERESPONSE Z OBSŁUGĄ STREAMINGU ---
-    const generateResponse = async (userMessage, file) => {
-        const loadingDiv = chatsContainer.querySelector(".bot-message.loading");
-        const messageTextElement = loadingDiv.querySelector(".message-text");
-        
-        // Wyczyść tekst ładowania, aby zacząć wyświetlać streamowany tekst
-        messageTextElement.textContent = "";
-        
-        try {
-            const formData = new FormData();
-            formData.append('sessionId', sessionId);
-            formData.append('message', userMessage || ' '); 
-            if (file) {
-                formData.append('file', file);
+      div.innerHTML = `
+        <div class="flex justify-between items-start">
+          <div class="flex-1">
+            <div class="proposal-date">${dayName}</div>
+            <div class="mt-2">
+              <span class="proposal-from">${p.fromPerson}</span>
+              <span class="mx-2">→</span>
+              <span class="proposal-to">${p.toPerson}</span>
+            </div>
+            <div class="proposal-votes">${votesNeeded} ${t("votesNeeded")}</div>
+          </div>
+          <div class="text-right">
+            ${
+              !(p.votes || []).includes(myName)
+                ? `<button class="proposal-btn" onclick="voteProposal('${docSnap.id}')">${t("iAgree")}</button>`
+                : `<span class="proposal-voted">${t("voted")}</span>`
             }
+          </div>
+        </div>
+      `;
 
-            const response = await fetch(API_URL, {
-                method: "POST",
-                body: formData, 
-            });
+      container.appendChild(div);
 
-            if (!response.ok) {
-                throw new Error(`Błąd HTTP: ${response.status}`);
-            }
+      if ((p.votes || []).length >= 3) {
+        applyProposal(docSnap.id, p);
+      }
+    });
+  });
+}
 
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder("utf-8");
-            let buffer = '';
-            
-            // Pętla do odczytywania fragmentów ze strumienia
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+// ========== VOTE ON PROPOSAL ==========
+window.voteProposal = (proposalId) => {
+  updateDoc(doc(db, "proposals", proposalId), { votes: arrayUnion(myName) });
+};
 
-                buffer += decoder.decode(value, { stream: true });
-                
-                // Ignoruj znacznik startu streamingu z serwera
-                if (buffer.startsWith('START_STREAMING')) {
-                    buffer = buffer.substring('START_STREAMING'.length);
-                }
-                
-                // Sprawdzenie znacznika błędu
-                if (buffer.includes('ERROR_STREAMING')) {
-                     throw new Error("Błąd podczas przesyłania danych ze strony serwera.");
-                }
+// ========== APPLY PROPOSAL ==========
+async function applyProposal(proposalId, proposal) {
+  const weekKey = getMonday(new Date(proposal.dateKey))
+    .toISOString()
+    .split("T")[0];
+  const scheduleRef = doc(db, "schedules", weekKey);
+  const scheduleDoc = await getDoc(scheduleRef);
 
-                // Aktualizuj DOM po każdym otrzymanym kawałku
-                messageTextElement.innerHTML = convertMarkdownToHtml(buffer);
-                scrollToBottom();
-            }
-            
-            // Finalne parsowanie po otrzymaniu wszystkich danych
-            messageTextElement.innerHTML = convertMarkdownToHtml(buffer);
+  if (scheduleDoc.exists()) {
+    let schedule = scheduleDoc.data();
+    schedule[proposal.dateKey] = proposal.toPerson;
+    await setDoc(scheduleRef, schedule);
+    await updateDoc(doc(db, "proposals", proposalId), { status: "applied" });
+    currentSchedule = schedule;
+    renderToday();
+    renderWeek();
+  }
+}
 
-            if (loadingDiv) {
-                loadingDiv.classList.remove("loading");
-            }
-            
-        } catch (err) {
-            console.error("Wystąpił błąd podczas streamingu:", err);
-            const errorMsg = "Błąd: Nie udało się uzyskać odpowiedzi. Sprawdź konsolę serwera Node.js i klucz API.";
-            if (loadingDiv) {
-                loadingDiv.classList.remove("loading");
-                loadingDiv.innerHTML = `<span class="material-symbols-rounded avatar" style="background-color: #ff4d4d;"> error </span><div class="message-text" style="color: #ff4d4d; padding: 12px 16px;">${errorMsg}</div>`;
-            }
-        } finally {
-            scrollToBottom();
-            attachedFile = null; 
-            addFileBtn.style.color = 'var(--text-color)';
-            promptInput.placeholder = "Zapytaj Smygrys GPT"; 
-        }
-    };
+// ========== MARK AS DONE ==========
+window.markDone = () => {
+  const todayKey = new Date().toISOString().split("T")[0];
+  const person = currentSchedule[todayKey];
 
+  if (!person) {
+    alert("No person assigned for today");
+    return;
+  }
 
-    // --- OBSŁUGA ZDARZEŃ ---
+  addDoc(collection(db, "history"), {
+    date: serverTimestamp(),
+    person: person,
+    markedBy: myName
+  });
 
-    function handleFormSubmit(e) {
-        e.preventDefault();
-        const userMessage = promptInput.value.trim();
-        
-        if (!userMessage && !attachedFile) return;
+  alert("✅ Marked as done!");
+  loadHistory();
+};
 
-        promptInput.value = "";
-        toggleInitialContent(true); 
+// ========== LOAD HISTORY ==========
+function loadHistory() {
+  const q = query(
+    collection(db, "history"),
+    orderBy("date", "desc"),
+    limit(50)
+  );
 
-        // 1. Dodaj wiadomość użytkownika (z tekstem i/lub obrazem)
-        let content;
-        if (attachedFile) {
-            const imgUrl = URL.createObjectURL(attachedFile);
-            const textContent = userMessage || 'Analizuję obraz...';
-            content = `<img src="${imgUrl}" alt="Załączony obrazek"><p class="message-text">${textContent}</p>`;
-        } else {
-             content = `<p class="message-text">${userMessage}</p>`;
-        }
-        
-        const userMsgDiv = createMsgElement(content, "user-message");
-        chatsContainer.appendChild(userMsgDiv);
-        scrollToBottom();
+  onSnapshot(q, (snapshot) => {
+    let count = {};
+    users.forEach((u) => (count[u] = 0));
 
-        // 2. Dodaj wiadomość ładowania bota
-        const botMsgHTML = `<span class="material-symbols-rounded avatar"> auto_awesome </span><div class="message-text">Generowanie odpowiedzi...</div>`;
-        const botMsgDiv = createMsgElement(botMsgHTML, "bot-message", "loading"); 
-        chatsContainer.appendChild(botMsgDiv);
-        scrollToBottom();
-        
-        // 3. Natychmiastowe wywołanie API
-        generateResponse(userMessage, attachedFile);
-    }
-
-    promptForm.addEventListener("submit", handleFormSubmit);
-    
-    // Obsługa kliknięcia sugestii
-    suggestionsList.addEventListener('click', (e) => {
-        const suggestionItem = e.target.closest('.suggestions-item');
-        
-        if (suggestionItem) {
-            const textElement = suggestionItem.querySelector('.text');
-            
-            if (textElement) {
-                const text = textElement.textContent.trim();
-                
-                promptInput.value = text;
-                promptForm.dispatchEvent(new Event('submit'));
-            }
-        }
+    snapshot.forEach((d) => {
+      const person = d.data().person;
+      count[person] = (count[person] || 0) + 1;
     });
 
+    // Render stats
+    const statsContainer = document.getElementById("stats");
+    statsContainer.innerHTML = users
+      .map(
+        (name) => `
+      <div class="stat-card">
+        <div class="stat-number">${count[name]}</div>
+        <div class="stat-name">${name}</div>
+      </div>
+    `
+      )
+      .join("");
 
-    // Przełączanie Motywu
-    themeToggleBtn.addEventListener('click', () => {
-        document.body.classList.toggle('light-mode');
-        const isLight = document.body.classList.contains('light-mode');
-        localStorage.setItem('theme', isLight ? 'light' : 'dark');
-        themeToggleBtn.textContent = isLight ? 'dark_mode' : 'light_mode';
-    });
-    
-    // Obsługa załączania pliku
-    addFileBtn.addEventListener('click', () => {
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = 'image/*'; 
-        fileInput.hidden = true;
-        
-        fileInput.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                attachedFile = file;
-                addFileBtn.style.color = 'var(--accent-color)'; 
-                promptInput.placeholder = `Plik: ${file.name} | Zadaj pytanie o obraz...`;
-            }
-        };
-        fileInput.click();
-    });
-    
-    // Obsługa usuwania czatu
-    deleteChatsBtn.addEventListener('click', async () => {
-        if (chatsContainer.children.length === 0) return;
+    // Render history list
+    const historyContainer = document.getElementById("historyList");
+    historyContainer.innerHTML = snapshot.docs
+      .map((d) => {
+        const data = d.data();
+        const date = data.date ? new Date(data.date.seconds * 1000) : new Date();
 
-        chatsContainer.innerHTML = '';
-        attachedFile = null;
-        promptInput.placeholder = "Zapytaj Smygrys GPT";
-        addFileBtn.style.color = 'var(--text-color)';
-        toggleInitialContent(false);
+        const options = { year: "numeric", month: "short", day: "numeric" };
+        const formattedDate = date.toLocaleDateString(
+          currentLanguage === "pl" ? "pl-PL" : currentLanguage === "uk" ? "uk-UA" : "en-US",
+          options
+        );
 
-        try {
-            await fetch(DELETE_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ sessionId: sessionId }),
-            });
-            sessionId = `session-${Date.now()}`;
-            localStorage.setItem('sessionId', sessionId);
-        } catch (err) {
-            console.error("Błąd podczas usuwania historii:", err);
-        }
-    });
+        return `
+          <div class="history-item">
+            <div class="history-person">${data.person}</div>
+            <div class="history-date">${formattedDate}</div>
+          </div>
+        `;
+      })
+      .join("");
+  });
+}
 
-    // Uruchomienie motywu przy starcie
-    initTheme();
-    
-    // Inicjalizacja widoku
-    if (chatsContainer.children.length === 0) {
-        toggleInitialContent(false);
-    }
-});
+// ========== TAB SWITCHING ==========
+window.showTab = (n) => {
+  currentTab = n;
+
+  const tab0 = document.getElementById("tab0");
+  const tab1 = document.getElementById("tab1");
+
+  if (n === 0) {
+    tab0.classList.add("nav-active");
+    tab0.classList.remove("text-gray-500");
+    tab1.classList.remove("nav-active");
+    tab1.classList.add("text-gray-500");
+    document.getElementById("mainApp").parentElement.style.display = "block";
+  } else {
+    tab0.classList.remove("nav-active");
+    tab0.classList.add("text-gray-500");
+    tab1.classList.add("nav-active");
+    tab1.classList.remove("text-gray-500");
+    loadHistory();
+  }
+};
+
+// ========== INITIALIZE ON PAGE LOAD ==========
+window.addEventListener("load", loadSettings);

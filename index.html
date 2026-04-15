@@ -1,95 +1,119 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Smygrys GPT Chatbot</title>
-    
-    <link 
-        rel="stylesheet" 
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap"
-    />
-    <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0"
-    />
-    <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Smygrys Trash Rotation</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="script.js"></script>
 </head>
 <body>
-    <div class="container">
-        <header class="app-header">
-            <h1 class="heading">Smygrys GPT</h1>
-            <h2 class="sub-heading">Jak mogę Ci dzisiaj pomóc?</h2>
-        </header>
 
-        <ul class="suggestions">
-            <li class="suggestions-item">
-                <p class="text">
-                    Design a home office setup for remote work under $500.
-                </p>
-                <span class="material-symbols-rounded"> draw </span>
-            </li>
-            <li class="suggestions-item">
-                <p class="text">
-                    How can I level up my web development expertise in 2025?
-                </p>
-                <span class="material-symbols-rounded"> lightbulb </span>
-            </li>
-            <li class="suggestions-item">
-                <p class="text">
-                    Suggest some useful tools for debuggins JavaScript code.
-                </p>
-                <span class="material-symbols-rounded"> explore </span>
-            </li>
-            <li class="suggestions-item">
-                <p class="text">
-                    Create a React Js component for the simple todo list app.
-                </p>
-                <span class="material-symbols-rounded"> code_blocks </span>
-            </li>
-        </ul>
+  <!-- WELCOME MODAL - TYPE NAME + APP INFO -->
+  <div id="welcomeModal" class="welcome-modal fixed inset-0 bg-black flex items-center justify-center z-50">
+    <div class="welcome-card bg-[#1a1a2e] text-white rounded-3xl p-8 max-w-[380px] w-full mx-4 shadow-2xl border border-white/10">
+      
+      <!-- Progress Dots -->
+      <div class="flex justify-center gap-2 mb-8">
+        <div class="w-2.5 h-1.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"></div>
+        <div class="w-2.5 h-1.5 bg-white/20 rounded-full"></div>
+        <div class="w-2.5 h-1.5 bg-white/20 rounded-full"></div>
+      </div>
 
-        <div class="chats-container">
-            </div>
+      <!-- Gradient Icon -->
+      <div class="flex justify-center mb-8">
+        <div class="gradient-icon w-24 h-24 rounded-3xl flex items-center justify-center text-6xl shadow-2xl">🗑️</div>
+      </div>
 
-        <div class="prompt-container">
-            <div class="prompt-wrapper">
-                <form action="#" class="prompt-form">
-                    <input
-                        type="text"
-                        placeholder="Zapytaj Smygrys GPT"
-                        class="prompt-input"
-                        required
-                    />
-                    <div class="prompt-actions">
-                        <button
-                            id="add-file-btn"
-                            type="button"
-                            class="material-symbols-rounded"
-                            title="Załącz plik (tylko obraz)"
-                        >
-                            attach_file
-                        </button>
-                        <button id="send-prompt-btn" class="material-symbols-rounded">
-                            arrow_upward
-                        </button>
-                    </div>
-                </form>
-                
-                <button id="theme-toggle-btn" class="material-symbols-rounded" title="Zmień motyw">
-                    light_mode
-                </button>
-                <button id="delete-chats-btn" class="material-symbols-rounded" title="Usuń historię czatu">
-                    delete
-                </button>
-            </div>
+      <!-- Title -->
+      <h1 class="text-3xl font-bold text-center mb-3" id="welcomeTitle">Welcome to<br>Smygrys Trash</h1>
 
-            <p class="disclaimer-text">
-                Smygrys GPT (Powered by Gemini) może popełniać błędy, sprawdź informacje.
-            </p>
+      <!-- About Section (Short Info) -->
+      <div class="bg-white/5 border border-white/10 rounded-2xl p-4 mb-8">
+        <p class="text-center text-gray-300 text-sm leading-relaxed">
+          🏠 <strong>Shared household trash rotation</strong><br>
+          📅 Smart scheduling • 🤝 Voting system • 📊 History tracking<br>
+          <span class="text-gray-400 text-xs">Keep your place organized together</span>
+        </p>
+      </div>
+      
+      <!-- Name Input -->
+      <div class="mb-6">
+        <label class="block text-xs text-gray-400 mb-3 font-semibold tracking-wide">YOUR NAME</label>
+        <input 
+          type="text" 
+          id="welcomeNameInput" 
+          placeholder="Enter your name" 
+          class="w-full bg-[#252538] border border-white/10 rounded-2xl p-4 text-white text-center text-base font-medium focus:outline-none focus:border-purple-500/50 placeholder-gray-500"
+        />
+      </div>
+      
+      <!-- Language Selection -->
+      <div class="mb-10">
+        <label class="block text-xs text-gray-400 mb-3 font-semibold tracking-wide">LANGUAGE</label>
+        <select id="welcomeLanguageSelect" class="w-full bg-[#252538] border border-white/10 rounded-2xl p-4 text-white text-center text-base font-medium focus:outline-none focus:border-purple-500/50">
+          <option value="en">English</option>
+          <option value="pl">Polski</option>
+          <option value="uk">Українська</option>
+        </select>
+      </div>
+      
+      <!-- CTA Button -->
+      <button onclick="startApp()" class="gradient-btn w-full text-white font-bold py-4 rounded-2xl text-lg shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center justify-center gap-2 active:scale-95">
+        Get Started <span class="text-xl">→</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div class="max-w-md mx-auto bg-white min-h-screen shadow-2xl flex flex-col">
+    
+    <!-- Header -->
+    <div class="hero-gradient text-white p-6 shadow-lg">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-3xl font-bold" id="appTitle">🗑️ Trash Bin</h1>
+          <p class="text-emerald-100 text-sm" id="headerSubtitle">Shared Rotation</p>
         </div>
+        <button onclick="showWelcomeModal()" class="text-4xl opacity-80 hover:opacity-100 transition-opacity">⚙️</button>
+      </div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- Main Content (Scrollable) -->
+    <div class="flex-1 overflow-y-auto p-5 pb-24">
+      
+      <!-- Today's Person Card -->
+      <div id="mainApp" class="card bg-white rounded-3xl shadow-xl p-8 text-center mb-8">
+        <p class="text-emerald-600 text-sm font-semibold uppercase tracking-wide" id="todayLabel">TODAY'S RESPONSIBLE</p>
+        <div id="todayPerson" class="person-name font-bold text-emerald-700 mt-4">—</div>
+        <div id="todayDate" class="text-gray-500 mt-1 text-sm"></div>
+        <button onclick="markDone()" class="mt-8 w-full bg-emerald-600 text-white py-4 rounded-2xl font-semibold text-lg hover:bg-emerald-700 transition-colors" id="markDoneBtn">Mark as Done ✓</button>
+      </div>
+
+      <!-- This Week Section -->
+      <h2 class="text-lg font-semibold mb-4 text-gray-800" id="weekTitle">This Week</h2>
+      <div id="weekList" class="flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory"></div>
+
+      <!-- Pending Proposals Section -->
+      <h2 class="text-lg font-semibold mt-8 mb-4 text-orange-600" id="proposalsTitle">Pending Proposals</h2>
+      <div id="proposalsList" class="space-y-3"></div>
+
+      <!-- History Section -->
+      <h2 class="text-lg font-semibold mt-10 mb-4 text-gray-800" id="historyTitle">History</h2>
+      <div id="stats" class="grid grid-cols-3 gap-4 mb-6"></div>
+      <div id="historyList" class="space-y-4"></div>
+
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-gray-200">
+      <div class="flex text-center text-sm font-medium">
+        <button onclick="showTab(0)" id="tab0" class="flex-1 py-4 nav-active transition-all">🏠 Home</button>
+        <button onclick="showTab(1)" id="tab1" class="flex-1 py-4 text-gray-500 transition-all">📊 History</button>
+      </div>
+    </div>
+
+  </div>
+
 </body>
 </html>
