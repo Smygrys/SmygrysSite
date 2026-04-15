@@ -6,7 +6,7 @@ function notificationsSupported() {
 }
 
 // Request notification permission
-export async function requestNotificationPermission() {
+async function requestNotificationPermission() {
   if (!notificationsSupported()) {
     console.log("❌ Notifications not supported");
     return false;
@@ -33,17 +33,17 @@ export async function requestNotificationPermission() {
 }
 
 // Save notification preference
-export function saveNotificationPreference(enabled) {
+function saveNotificationPreference(enabled) {
   localStorage.setItem("notificationsEnabled", enabled ? "true" : "false");
 }
 
 // Get notification preference
-export function getNotificationPreference() {
+function getNotificationPreference() {
   return localStorage.getItem("notificationsEnabled") !== "false";
 }
 
 // Schedule daily notification at 10 PM
-export async function scheduleDaily10PMNotification(myName, schedule) {
+async function scheduleDaily10PMNotification(myName, schedule) {
   if (!notificationsSupported() || !getNotificationPreference()) {
     console.log("📢 Notifications disabled or not supported");
     return;
@@ -81,7 +81,6 @@ function checkAndNotify(myName, schedule) {
       );
     }
 
-    // Also log for debugging
     if (tomorrowPerson && tomorrowPerson !== myName) {
       console.log(`📢 Tomorrow is ${tomorrowPerson}'s turn`);
     }
@@ -100,7 +99,6 @@ function showPhoneNotification(title, message, icon) {
     return;
   }
 
-  // Check if permission is granted
   if (Notification.permission === "granted") {
     try {
       const notification = new Notification(title, {
@@ -111,7 +109,6 @@ function showPhoneNotification(title, message, icon) {
         badge: `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23a855f7' width='192' height='192' rx='45'/><text x='96' y='96' font-size='100' text-anchor='middle' dominant-baseline='middle'>${icon}</text></svg>`
       });
 
-      // Click notification to open app
       notification.onclick = () => {
         window.focus();
         window.parent.focus();
@@ -126,20 +123,18 @@ function showPhoneNotification(title, message, icon) {
 }
 
 // Initialize notifications on app load
-export async function initNotifications() {
+async function initNotifications() {
   if (!notificationsSupported()) {
     console.log("ℹ️ Notifications not supported on this device");
     return;
   }
 
-  // If permission is denied, don't ask again
   if (Notification.permission === "denied") {
     console.log("📢 User denied notifications");
     localStorage.setItem("notificationsEnabled", "false");
     return;
   }
 
-  // If permission is not yet given and user wants notifications
   if (Notification.permission === "default" && getNotificationPreference()) {
     const granted = await requestNotificationPermission();
     if (!granted) {
@@ -151,10 +146,18 @@ export async function initNotifications() {
 }
 
 // Test notification
-export function sendTestNotification() {
+function sendTestNotification() {
   showPhoneNotification(
     "🗑️ Test Notification",
     "This is a test. You'll get a real notification at 10 PM when it's your turn!",
     "✅"
   );
 }
+
+// Make functions global
+window.requestNotificationPermission = requestNotificationPermission;
+window.saveNotificationPreference = saveNotificationPreference;
+window.getNotificationPreference = getNotificationPreference;
+window.scheduleDaily10PMNotification = scheduleDaily10PMNotification;
+window.initNotifications = initNotifications;
+window.sendTestNotification = sendTestNotification;
