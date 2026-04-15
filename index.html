@@ -3,27 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <meta name="description" content="Shared household trash rotation app"/>
+  <meta name="description" content="Trash rotation for boarding school"/>
   <meta name="theme-color" content="#a855f7"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <meta name="apple-mobile-web-app-title" content="Smygrys Trash"/>
+  <meta name="apple-mobile-web-app-title" content="Trash Rotation"/>
   
-  <title>Smygrys Trash Rotation</title>
+  <title>Trash Rotation</title>
   
   <link rel="manifest" href="manifest.json"/>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23a855f7' width='192' height='192' rx='45'/><text x='96' y='96' font-size='100' text-anchor='middle' dominant-baseline='middle' font-family='Arial'>🗑️</text></svg>"/>
-  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%23a855f7' width='180' height='180' rx='40'/><text x='90' y='90' font-size='90' text-anchor='middle' dominant-baseline='middle' font-family='Arial'>🗑️</text></svg>"/>
-  
   <link rel="stylesheet" href="style.css">
-  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
 
-  <!-- ============ WELCOME MODAL ============ -->
+  <!-- WELCOME MODAL -->
   <div id="welcomeModal" class="welcome-modal">
     <div class="welcome-card">
       
@@ -35,134 +30,91 @@
 
       <div class="gradient-icon">🗑️</div>
 
-      <h1 class="welcome-title" id="welcomeTitle">Welcome to<br>Smygrys Trash<br>Rotation</h1>
+      <h1 class="welcome-title">Trash Rotation</h1>
 
-      <div class="about-box" id="aboutBox">
-        <p>🏠 <strong>Shared household trash rotation</strong></p>
-        <p>📅 Pick your days • 🤝 Join with friends</p>
-        <p class="text-muted">Start with your name and preferred days</p>
+      <div class="about-box">
+        <p>🏠 <strong>Shared boarding school trash duty</strong></p>
+        <p>📅 Mon-Fri • 🤝 Pick your days</p>
       </div>
       
-      <!-- Language Selection -->
+      <!-- Language -->
       <div class="form-group">
-        <label id="selectLanguageLabel">LANGUAGE</label>
-        <select id="welcomeLanguageSelect" class="form-input">
+        <label>LANGUAGE</label>
+        <select id="langSelect" class="form-input">
           <option value="en">English</option>
           <option value="pl">Polski</option>
           <option value="uk">Українська</option>
         </select>
       </div>
 
-      <!-- Name Input -->
+      <!-- Name -->
       <div class="form-group">
-        <label id="yourNameLabel">YOUR NAME</label>
-        <input 
-          type="text" 
-          id="joinName" 
-          placeholder="Enter your name" 
-          class="form-input"
-          autocomplete="off"
-        />
+        <label>YOUR NAME</label>
+        <input type="text" id="nameInput" placeholder="Enter name" class="form-input" autocomplete="off"/>
       </div>
 
-      <!-- Days Selection -->
+      <!-- Days -->
       <div class="form-group">
-        <label id="selectDaysLabel">PICK YOUR DAYS (optional)</label>
-        <div class="days-picker" id="daysPicker">
-          <label class="day-checkbox">
-            <input type="checkbox" value="Monday" class="day-check"/>
-            <span>Mon</span>
-          </label>
-          <label class="day-checkbox">
-            <input type="checkbox" value="Tuesday" class="day-check"/>
-            <span>Tue</span>
-          </label>
-          <label class="day-checkbox">
-            <input type="checkbox" value="Wednesday" class="day-check"/>
-            <span>Wed</span>
-          </label>
-          <label class="day-checkbox">
-            <input type="checkbox" value="Thursday" class="day-check"/>
-            <span>Thu</span>
-          </label>
-          <label class="day-checkbox">
-            <input type="checkbox" value="Friday" class="day-check"/>
-            <span>Fri</span>
-          </label>
-          <label class="day-checkbox">
-            <input type="checkbox" value="Saturday" class="day-check"/>
-            <span>Sat</span>
-          </label>
-          <label class="day-checkbox">
-            <input type="checkbox" value="Sunday" class="day-check"/>
-            <span>Sun</span>
-          </label>
+        <label>PICK YOUR DAYS</label>
+        <div class="days-picker">
+          <label class="day-checkbox"><input type="checkbox" value="Monday"/><span>Mon</span></label>
+          <label class="day-checkbox"><input type="checkbox" value="Tuesday"/><span>Tue</span></label>
+          <label class="day-checkbox"><input type="checkbox" value="Wednesday"/><span>Wed</span></label>
+          <label class="day-checkbox"><input type="checkbox" value="Thursday"/><span>Thu</span></label>
+          <label class="day-checkbox"><input type="checkbox" value="Friday"/><span>Fri</span></label>
         </div>
       </div>
 
-      <!-- Join Button -->
-      <button onclick="window.joinApp()" class="btn-gradient" id="joinBtn">
-        Join Now <span>→</span>
-      </button>
+      <button class="btn-gradient" onclick="joinNow()">Join Now →</button>
 
     </div>
   </div>
 
-  <!-- ============ MAIN APP ============ -->
+  <!-- MAIN APP -->
   <div class="app-container hidden" id="mainApp">
     
-    <!-- Header -->
     <header class="header">
       <div class="header-content">
-        <div class="header-title">
-          <h1 id="appTitle">🗑️ Trash Bin</h1>
-          <p id="headerSubtitle">Shared Rotation</p>
-        </div>
-        <div class="header-actions">
-          <button onclick="window.showInstallPrompt()" id="installBtn" class="btn-icon hidden" title="Install">⬇️</button>
-          <button onclick="window.showWelcomeModal()" class="btn-icon" title="Settings">⚙️</button>
-        </div>
+        <h1 id="title">🗑️ Trash Rotation</h1>
+        <button class="btn-icon" onclick="showWelcomeModal()">⚙️</button>
       </div>
     </header>
 
-    <!-- Main Content -->
     <main class="content" id="contentHome">
       
-      <!-- Members Section -->
-      <h2 class="section-title" id="membersTitle">Members</h2>
-      <div class="members-list" id="membersList"></div>
+      <!-- Members -->
+      <h2 class="section-title">Members</h2>
+      <div id="membersList" class="members-list"></div>
 
-      <!-- Today's Card -->
+      <!-- Today -->
       <div class="today-card">
-        <p class="label" id="todayLabel">TODAY'S RESPONSIBLE</p>
+        <p class="label">TODAY'S TURN</p>
         <div id="todayPerson" class="person-name">—</div>
         <div id="todayDate" class="date-text"></div>
-        <button onclick="window.markDone()" class="btn-primary" id="markDoneBtn">
-          Mark as Done ✓
-        </button>
+        <button class="btn-primary" onclick="markDone()">Done ✓</button>
       </div>
 
-      <!-- Week Section -->
-      <h2 class="section-title" id="weekTitle">This Week</h2>
+      <!-- Week -->
+      <h2 class="section-title">This Week</h2>
       <div class="week-grid" id="weekList"></div>
 
-      <!-- Proposals Section -->
-      <h2 class="section-title proposals-title" id="proposalsTitle">Pending Proposals</h2>
+      <!-- Proposals -->
+      <h2 class="section-title proposals-title">Pending Changes</h2>
       <div id="proposalsList" class="proposals-list"></div>
 
     </main>
 
     <!-- History Tab -->
     <main class="content hidden" id="contentHistory">
-      <h2 class="section-title" id="historyTitle">History</h2>
+      <h2 class="section-title">History</h2>
       <div class="stats-grid" id="stats"></div>
       <div id="historyList" class="history-list"></div>
     </main>
 
     <!-- Bottom Nav -->
     <nav class="bottom-nav">
-      <button onclick="window.switchTab('home')" id="tabHome" class="nav-btn active">🏠 Home</button>
-      <button onclick="window.switchTab('history')" id="tabHistory" class="nav-btn">📊 History</button>
+      <button class="nav-btn active" onclick="switchTab('home')">🏠 Home</button>
+      <button class="nav-btn" onclick="switchTab('history')">📊 History</button>
     </nav>
 
   </div>
