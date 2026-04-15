@@ -1,4 +1,3 @@
-// ========== IMPORTS FROM CONFIG ==========
 import {
   db,
   doc,
@@ -14,6 +13,9 @@ import {
   query,
   limit,
 } from "./config.js";
+
+console.log("✅ app.js loaded");
+console.log("✅ db object:", db);
 
 // ========== PUSH NOTIFICATIONS FUNCTIONS ==========
 
