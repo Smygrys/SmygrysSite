@@ -15,6 +15,8 @@ import {
   limit,
 } from "./config.js";
 
+console.log("✅ app.js loaded");
+
 // ========== PUSH NOTIFICATIONS FUNCTIONS ==========
 
 function notificationsSupported() {
@@ -135,28 +137,6 @@ function showPhoneNotification(title, message, icon) {
   }
 }
 
-async function initNotifications() {
-  if (!notificationsSupported()) {
-    console.log("ℹ️ Notifications not supported on this device");
-    return;
-  }
-
-  if (Notification.permission === "denied") {
-    console.log("📢 User denied notifications");
-    localStorage.setItem("notificationsEnabled", "false");
-    return;
-  }
-
-  if (Notification.permission === "default" && getNotificationPreference()) {
-    const granted = await requestNotificationPermission();
-    if (!granted) {
-      localStorage.setItem("notificationsEnabled", "false");
-    }
-  }
-
-  console.log("✅ Notifications initialized");
-}
-
 function sendTestNotification() {
   showPhoneNotification(
     "🗑️ Test Notification",
@@ -238,22 +218,28 @@ function updateTexts() {
 }
 
 function showWelcomeModal() {
-  document.getElementById("welcomeModal").classList.remove("hidden");
+  console.log("👤 SHOWING WELCOME MODAL");
+  const modal = document.getElementById("welcomeModal");
+  const app = document.getElementById("mainApp");
+  
+  modal.classList.remove("hidden");
+  app.classList.add("hidden");
+  
   document.getElementById("nameInput").value = "";
   document.getElementById("langSelect").value = appState.currentLanguage;
-  document
-    .querySelectorAll(".day-checkbox input")
-    .forEach((cb) => (cb.checked = false));
-  document.getElementById("enableNotifications").checked =
-    getNotificationPreference();
+  document.querySelectorAll(".day-checkbox input").forEach((cb) => (cb.checked = false));
+  document.getElementById("enableNotifications").checked = getNotificationPreference();
+  
+  console.log("✅ Welcome modal shown");
 }
 
 function hideWelcomeModal() {
+  console.log("🚀 HIDING WELCOME MODAL");
   document.getElementById("welcomeModal").classList.add("hidden");
 }
 
 function showMainApp() {
-  document.getElementById("welcomeModal").classList.add("hidden");
+  console.log("📱 SHOWING MAIN APP");
   document.getElementById("mainApp").classList.remove("hidden");
 }
 
@@ -275,9 +261,7 @@ async function joinNow() {
     return;
   }
 
-  const dayCheckboxes = document.querySelectorAll(
-    ".day-checkbox input:checked",
-  );
+  const dayCheckboxes = document.querySelectorAll(".day-checkbox input:checked");
   const days = Array.from(dayCheckboxes).map((cb) => cb.value);
 
   if (days.length === 0) {
@@ -286,14 +270,7 @@ async function joinNow() {
   }
 
   appState.loading = true;
-  console.log(
-    "🚀 User joining with name:",
-    name,
-    "days:",
-    days,
-    "notifications:",
-    enableNotif,
-  );
+  console.log("🚀 User joining with name:", name, "days:", days);
 
   try {
     appState.myName = name;
@@ -796,38 +773,30 @@ function switchTab(tab) {
   if (tab === "home" || tab === 0) {
     contentHome.classList.remove("hidden");
     contentHistory.classList.add("hidden");
-    tabHomeBtn.classList.add("nav-active");
-    tabHomeBtn.classList.remove("text-gray-500");
-    tabHistoryBtn.classList.remove("nav-active");
-    tabHistoryBtn.classList.add("text-gray-500");
+    tabHomeBtn.classList.add("active");
+    tabHistoryBtn.classList.remove("active");
   } else {
     contentHome.classList.add("hidden");
     contentHistory.classList.remove("hidden");
-    tabHomeBtn.classList.remove("nav-active");
-    tabHomeBtn.classList.add("text-gray-500");
-    tabHistoryBtn.classList.add("nav-active");
-    tabHistoryBtn.classList.remove("text-gray-500");
+    tabHomeBtn.classList.remove("active");
+    tabHistoryBtn.classList.add("active");
     loadHistory();
   }
 }
 
 // ========== EVENT LISTENERS ==========
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("✅ DOM Content Loaded");
+  console.log("✅ DOMContentLoaded");
   
   document.getElementById("joinBtn").addEventListener("click", joinNow);
   document.getElementById("markDoneBtn").addEventListener("click", markDone);
-  document
-    .getElementById("tabHomeBtn")
-    .addEventListener("click", () => switchTab("home"));
-  document
-    .getElementById("tabHistoryBtn")
-    .addEventListener("click", () => switchTab("history"));
+  document.getElementById("tabHomeBtn").addEventListener("click", () => switchTab("home"));
+  document.getElementById("tabHistoryBtn").addEventListener("click", () => switchTab("history"));
 
   loadSettings();
 });
 
-// ========== GLOBAL FUNCTIONS (for onclick) ==========
+// ========== GLOBAL FUNCTIONS ==========
 window.proposeChange = proposeChange;
 window.voteProposal = voteProposal;
 window.switchTab = switchTab;
@@ -841,24 +810,25 @@ async function loadSettings() {
     const d = await getDoc(doc(db, "appSettings", "config"));
     if (d.exists()) {
       appState.members = d.data().members || {};
+      console.log("✅ Members loaded:", appState.members);
     }
   } catch (error) {
-    console.error("❌ Error loading members from DB:", error);
+    console.error("❌ Error loading members:", error);
   }
 
-  const myName = localStorage.getItem("myName");
-  const language = localStorage.getItem("language") || "en";
+  const savedName = localStorage.getItem("myName");
+  const savedLang = localStorage.getItem("language") || "en";
 
-  console.log("📋 Saved name:", myName);
+  console.log("💾 Saved name:", savedName);
 
-  if (!myName) {
-    console.log("👤 No saved user, showing welcome modal");
-    appState.currentLanguage = language;
+  if (!savedName) {
+    console.log("❌ NO USER - SHOWING WELCOME MODAL");
+    appState.currentLanguage = savedLang;
     showWelcomeModal();
   } else {
-    console.log("✅ User found:", myName);
-    appState.myName = myName;
-    appState.currentLanguage = language;
+    console.log("✅ USER FOUND:", savedName);
+    appState.myName = savedName;
+    appState.currentLanguage = savedLang;
     
     hideWelcomeModal();
     showMainApp();
@@ -871,7 +841,7 @@ async function loadSettings() {
     listenToAdminNotifications();
 
     setTimeout(() => {
-      scheduleDaily10PMNotification(myName, appState.currentSchedule);
+      scheduleDaily10PMNotification(savedName, appState.currentSchedule);
     }, 1000);
   }
 }
