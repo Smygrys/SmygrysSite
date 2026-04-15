@@ -33,17 +33,28 @@ window.adminLogin = async () => {
   const errorEl = document.getElementById("loginError");
 
   if (!email || !password) {
-    errorEl.textContent = "Enter email and password";
+    errorEl.textContent = "❌ Enter email and password";
     return;
   }
 
   try {
-    errorEl.textContent = "Logging in...";
+    errorEl.textContent = "🔄 Logging in...";
+    console.log("🔐 Attempting login with:", email);
     await signInWithEmailAndPassword(auth, email, password);
+    console.log("✅ Login successful!");
     errorEl.textContent = "";
   } catch (error) {
-    console.error("Login error:", error);
-    errorEl.textContent = "❌ Invalid credentials";
+    console.error("❌ Login error:", error.code, error.message);
+    
+    if (error.code === "auth/user-not-found") {
+      errorEl.textContent = "❌ User not found";
+    } else if (error.code === "auth/wrong-password") {
+      errorEl.textContent = "❌ Wrong password";
+    } else if (error.code === "auth/invalid-email") {
+      errorEl.textContent = "❌ Invalid email";
+    } else {
+      errorEl.textContent = "❌ " + error.message;
+    }
   }
 };
 
@@ -51,10 +62,14 @@ window.adminLogin = async () => {
 window.adminLogout = async () => {
   try {
     await signOut(auth);
+    console.log("✅ Logged out");
     document.getElementById("loginScreen").classList.remove("hidden");
     document.getElementById("adminDashboard").classList.add("hidden");
+    document.getElementById("adminEmail").value = "";
+    document.getElementById("adminPassword").value = "";
+    document.getElementById("loginError").textContent = "";
   } catch (error) {
-    console.error("Logout error:", error);
+    console.error("❌ Logout error:", error);
   }
 };
 
@@ -77,9 +92,14 @@ onAuthStateChanged(auth, (user) => {
 
 // ========== LOAD ADMIN DATA ==========
 function loadAdminData() {
+  console.log("📥 Loading admin data...");
   onSnapshot(doc(db, "appSettings", "config"), (docSnap) => {
     if (docSnap.exists()) {
       window.adminState.members = docSnap.data().members || {};
+      console.log("✅ Members loaded:", window.adminState.members);
+    } else {
+      console.log("ℹ️ No members yet");
+      window.adminState.members = {};
     }
     renderUsers();
     loadSchedule();
@@ -129,7 +149,10 @@ window.editUser = (name) => {
   const data = window.adminState.members[name];
   const days = data.days || [];
 
-  const newDaysStr = prompt(`Edit days for ${name}:\n(comma separated: Monday,Tuesday,etc)\nCurrent: ${days.join(", ")}`, days.join(","));
+  const newDaysStr = prompt(
+    `Edit days for ${name}:\n\n(comma separated, or leave empty for random)\n\nCurrent: ${days.length > 0 ? days.join(", ") : "Random"}\n\nOptions: Monday, Tuesday, Wednesday, Thursday, Friday`,
+    days.join(",")
+  );
 
   if (newDaysStr === null) return;
 
@@ -138,19 +161,19 @@ window.editUser = (name) => {
   const validDays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
   const validNewDays = newDays.filter(d => validDays.includes(d));
 
-  if (validNewDays.length === 0) {
+  if (newDaysStr !== "" && validNewDays.length === 0) {
     alert("❌ Invalid days. Use: Monday, Tuesday, Wednesday, Thursday, Friday");
     return;
   }
 
-  updateUserDays(name, validNewDays);
+  updateUserDays(name, validNewDays.length > 0 ? validNewDays : []);
 };
 
 async function updateUserDays(name, newDays) {
   try {
     const configRef = doc(db, "appSettings", "config");
     const configDoc = await getDoc(configRef);
-    let members = configDoc.data().members || {};
+    let members = configDoc.exists() ? (configDoc.data().members || {}) : {};
 
     members[name] = {
       ...members[name],
@@ -158,16 +181,16 @@ async function updateUserDays(name, newDays) {
     };
 
     await setDoc(configRef, { members });
-    showNotification(`✅ Updated ${name}'s days`, "success", "✏️");
+    showNotification(`✏️ Updated ${name}'s days`, "success", "✅");
   } catch (error) {
-    console.error("Error updating:", error);
+    console.error("❌ Error updating:", error);
     showNotification("❌ Error updating user", "error", "⚠️");
   }
 }
 
 // ========== DELETE USER ==========
 window.deleteUserConfirm = (name) => {
-  if (confirm(`⚠️ Are you sure you want to delete ${name}?\n\nThis cannot be undone.`)) {
+  if (confirm(`⚠️ Are you sure you want to DELETE ${name}?\n\nThis cannot be undone!`)) {
     deleteUser(name);
   }
 };
@@ -176,15 +199,16 @@ async function deleteUser(name) {
   try {
     const configRef = doc(db, "appSettings", "config");
     const configDoc = await getDoc(configRef);
-    let members = configDoc.data().members || {};
+    let members = configDoc.exists() ? (configDoc.data().members || {}) : {};
 
     delete members[name];
 
     await setDoc(configRef, { members });
     showNotification(`🗑️ Deleted ${name}`, "success", "✅");
     renderUsers();
+    loadSchedule();
   } catch (error) {
-    console.error("Error deleting:", error);
+    console.error("❌ Error deleting:", error);
     showNotification("❌ Error deleting user", "error", "⚠️");
   }
 }
@@ -196,11 +220,12 @@ window.sendNotification = async () => {
   const icon = document.getElementById("notifyIcon").value.trim() || "📢";
 
   if (!message) {
-    alert("Enter notification message");
+    alert("❌ Enter notification message");
     return;
   }
 
   try {
+    console.log("📤 Sending notification:", message);
     await addDoc(collection(db, "adminNotifications"), {
       message,
       color,
@@ -211,10 +236,10 @@ window.sendNotification = async () => {
     document.getElementById("notifyMessage").value = "";
     document.getElementById("notifyIcon").value = "";
 
-    showNotification("📤 Notification sent to all users", "success", "✅");
+    showNotification("📤 Notification sent to all users!", "success", "✅");
     loadNotificationHistory();
   } catch (error) {
-    console.error("Error sending:", error);
+    console.error("❌ Error sending:", error);
     showNotification("❌ Error sending notification", "error", "⚠️");
   }
 };
@@ -227,7 +252,7 @@ function listenToNotifications() {
   );
 
   onSnapshot(q, (snapshot) => {
-    loadNotificationHistory();
+    console.log("📬 Notifications updated:", snapshot.size);
   });
 }
 
@@ -242,10 +267,16 @@ function loadNotificationHistory() {
     const container = document.getElementById("notifyHistory");
     container.innerHTML = "<h3 style='margin-bottom:1rem'>Recent Notifications</h3>";
 
-    snapshot.forEach((doc) => {
-      const data = doc.data();
+    if (snapshot.empty) {
+      container.innerHTML += "<p style='color:#9ca3af'>No notifications sent yet</p>";
+      return;
+    }
+
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
       const date = data.createdAt ? new Date(data.createdAt.seconds * 1000) : new Date();
       const timeStr = date.toLocaleTimeString();
+      const dateStr = date.toLocaleDateString();
 
       const div = document.createElement("div");
       div.className = "history-item";
@@ -254,7 +285,7 @@ function loadNotificationHistory() {
         <div class="history-icon">${data.icon}</div>
         <div class="history-text">
           <div>${data.message}</div>
-          <div class="history-time">${timeStr}</div>
+          <div class="history-time">${dateStr} at ${timeStr}</div>
         </div>
       `;
 
@@ -306,8 +337,13 @@ function renderSchedule() {
 window.changeSchedulePerson = (dateKey, currentPerson) => {
   const members = Object.keys(window.adminState.members);
 
+  if (members.length === 0) {
+    alert("❌ No members to assign");
+    return;
+  }
+
   const newPerson = prompt(
-    `Change ${currentPerson} to?\n${members.join(" / ")}`,
+    `Change ${currentPerson} to?\n\n${members.join(", ")}`,
     currentPerson
   );
 
@@ -323,15 +359,16 @@ async function updateSchedulePerson(dateKey, oldPerson, newPerson) {
     const scheduleRef = doc(db, "schedules", weekKey);
 
     const scheduleDoc = await getDoc(scheduleRef);
-    let schedule = scheduleDoc.data() || {};
+    let schedule = scheduleDoc.exists() ? scheduleDoc.data() : {};
 
     schedule[dateKey] = newPerson;
 
     await setDoc(scheduleRef, schedule);
-    showNotification(`📅 Changed ${dateKey} to ${newPerson}`, "success", "✅");
+    showNotification(`📅 Changed to ${newPerson}`, "success", "✅");
     renderSchedule();
   } catch (error) {
-    console.error("Error:", error);
+    console.error("❌ Error updating schedule:", error);
+    showNotification("❌ Error updating schedule", "error", "⚠️");
   }
 }
 
@@ -344,19 +381,22 @@ function getMonday(date = new Date()) {
 
 // ========== TAB SWITCHING ==========
 window.switchAdminTab = (tab) => {
-  document.querySelectorAll(".admin-tab").forEach(t => t.classList.add("hidden"));
-  document.querySelectorAll(".nav-tab").forEach(b => b.classList.remove("active"));
+  const tabs = document.querySelectorAll(".admin-tab");
+  const navButtons = document.querySelectorAll(".nav-tab");
+
+  tabs.forEach(t => t.classList.add("hidden"));
+  navButtons.forEach(b => b.classList.remove("active"));
 
   if (tab === "users") {
     document.getElementById("usersTab").classList.remove("hidden");
-    document.querySelectorAll(".nav-tab")[0].classList.add("active");
+    navButtons[0].classList.add("active");
   } else if (tab === "notify") {
     document.getElementById("notifyTab").classList.remove("hidden");
-    document.querySelectorAll(".nav-tab")[1].classList.add("active");
+    navButtons[1].classList.add("active");
     loadNotificationHistory();
   } else if (tab === "schedule") {
     document.getElementById("scheduleTab").classList.remove("hidden");
-    document.querySelectorAll(".nav-tab")[2].classList.add("active");
+    navButtons[2].classList.add("active");
   }
 };
 
@@ -380,10 +420,17 @@ function showNotification(message, color = "success", icon = "✅") {
     if (box.parentElement) {
       box.remove();
     }
-  }, 3000);
+  }, 4000);
 }
 
 // ========== ON PAGE LOAD ==========
-window.addEventListener("DOMContentLoaded", () => {
-  console.log("✅ Admin panel loaded");
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("✅ Admin panel loaded and ready");
+  
+  // Add Enter key to login
+  document.getElementById("adminPassword").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      window.adminLogin();
+    }
+  });
 });
