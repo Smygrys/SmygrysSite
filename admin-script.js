@@ -403,7 +403,16 @@ window.switchAdminTab = (tab) => {
 // ========== SHOW NOTIFICATION ==========
 function showNotification(message, color = "success", icon = "✅") {
   const display = document.getElementById("notificationDisplay");
-  display.classList.remove("hidden");
+  
+  if (!display) {
+    const div = document.createElement("div");
+    div.id = "notificationDisplay";
+    div.className = "notification-display";
+    document.body.appendChild(div);
+  }
+
+  const display2 = document.getElementById("notificationDisplay");
+  display2.classList.remove("hidden");
 
   const box = document.createElement("div");
   box.className = `notification-box ${color}`;
@@ -414,7 +423,7 @@ function showNotification(message, color = "success", icon = "✅") {
     <button class="notification-close" onclick="this.parentElement.remove()">✕</button>
   `;
 
-  display.appendChild(box);
+  display2.appendChild(box);
 
   setTimeout(() => {
     if (box.parentElement) {

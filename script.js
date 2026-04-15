@@ -52,7 +52,7 @@ function showMainApp() {
   document.getElementById("mainApp").classList.remove("hidden");
 }
 
-// ========== JOIN NOW (FIXED) ==========
+// ========== JOIN NOW ==========
 window.joinNow = async () => {
   if (window.appState.loading) return;
 
@@ -84,7 +84,6 @@ window.joinNow = async () => {
 
     const configRef = doc(db, "appSettings", "config");
     
-    // First, try to get existing config
     const configDoc = await getDoc(configRef);
     
     let members = {};
@@ -92,7 +91,6 @@ window.joinNow = async () => {
       members = configDoc.data().members || {};
     }
 
-    // Add this new member
     members[name] = {
       days: days,
       joinedAt: new Date().toISOString()
@@ -100,7 +98,6 @@ window.joinNow = async () => {
 
     console.log("📝 Saving members:", members);
 
-    // Save to Firestore
     await setDoc(configRef, { members }, { merge: true });
 
     console.log("✅ Member added successfully");
@@ -109,17 +106,17 @@ window.joinNow = async () => {
     showMainApp();
     updateTexts();
     
-    // Load data
     loadMembers();
     loadSchedule();
     loadProposals();
     loadHistory();
+    listenToAdminNotifications();
 
     window.appState.loading = false;
   } catch (error) {
     window.appState.loading = false;
     console.error("❌ Join error:", error);
-    alert("❌ Error: " + error.message + "\n\nMake sure:\n1. Firebase is configured in config.js\n2. Firestore is enabled\n3. Rules allow read/write");
+    alert("❌ Error: " + error.message + "\n\nMake sure:\n1. Firebase is configured\n2. Firestore is enabled\n3. Rules allow read/write");
   }
 };
 
@@ -190,16 +187,13 @@ function regenerateSchedule() {
     const dateKey = day.toISOString().split("T")[0];
     const dayName = DAYS[i];
 
-    // Find members who prefer this day
     const preferring = members.filter(([, data]) => 
       data.days && data.days.includes(dayName)
     );
 
     if (preferring.length > 0) {
-      // Assign to first preferring member (or random if multiple)
       schedule[dateKey] = preferring[Math.floor(Math.random() * preferring.length)][0];
     } else {
-      // Random from all members
       schedule[dateKey] = members[Math.floor(Math.random() * members.length)][0];
     }
   }
@@ -279,7 +273,7 @@ window.proposeChange = (dateKey, currentPerson) => {
   const others = memberNames.filter(m => m !== currentPerson);
 
   if (others.length === 0) {
-    alert("No other members to swap with");
+    alert("No other members");
     return;
   }
 
@@ -443,6 +437,62 @@ function loadHistory() {
   window.appState.unsubscribers.push(unsubscribe);
 }
 
+// ========== LISTEN TO ADMIN NOTIFICATIONS ==========
+function listenToAdminNotifications() {
+  const q = query(
+    collection(db, "adminNotifications"),
+    orderBy("createdAt", "desc"),
+    limit(1)
+  );
+
+  onSnapshot(q, (snapshot) => {
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      
+      if (data.createdAt) {
+        const createdTime = new Date(data.createdAt.seconds * 1000);
+        const now = new Date();
+        const timeDiff = now - createdTime;
+        
+        if (timeDiff < 5000) {
+          showUserNotification(data.message, data.color, data.icon);
+        }
+      }
+    });
+  });
+}
+
+function showUserNotification(message, color = "success", icon = "✅") {
+  let display = document.getElementById("notificationDisplay");
+  
+  if (!display) {
+    const div = document.createElement("div");
+    div.id = "notificationDisplay";
+    div.className = "notification-display";
+    document.body.appendChild(div);
+    display = div;
+  }
+
+  display.classList.remove("hidden");
+
+  const box = document.createElement("div");
+  box.className = `notification-box ${color}`;
+
+  box.innerHTML = `
+    <span class="notification-icon">${icon}</span>
+    <span class="notification-text">${message}</span>
+    <button class="notification-close" onclick="this.parentElement.remove()">✕</button>
+  `;
+
+  display.appendChild(box);
+
+  setTimeout(() => {
+    if (box.parentElement) {
+      box.remove();
+    }
+  }, 4000);
+}
+
 window.switchTab = (tab) => {
   const contentHome = document.getElementById("contentHome");
   const contentHistory = document.getElementById("contentHistory");
@@ -474,7 +524,7 @@ async function initializeApp() {
     window.appState.members = configDoc.exists() ? (configDoc.data().members || {}) : {};
     console.log("✅ Loaded members:", window.appState.members);
   } catch (error) {
-    console.error("❌ Error initializing:", error);
+    console.error("❌ Error:", error);
   }
 
   if (savedName && window.appState.members[savedName]) {
@@ -486,6 +536,7 @@ async function initializeApp() {
     loadSchedule();
     loadProposals();
     loadHistory();
+    listenToAdminNotifications();
   } else {
     console.log("🔒 Showing welcome modal");
     showWelcomeModal();

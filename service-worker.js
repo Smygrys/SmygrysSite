@@ -1,19 +1,58 @@
 const CACHE = "trash-v1";
-const urls = ["./", "./index.html", "./style.css", "./script.js", "./config.js", "./manifest.json"];
+const urls = [
+  "./",
+  "./index.html",
+  "./style.css",
+  "./script.js",
+  "./config.js",
+  "./manifest.json",
+  "./admin.html",
+  "./admin-style.css",
+  "./admin-config.js",
+  "./admin-script.js"
+];
 
-self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(urls).catch(() => {})));
+self.addEventListener("install", (e) => {
+  e.waitUntil(
+    caches.open(CACHE)
+      .then((c) => c.addAll(urls).catch(() => {}))
+  );
   self.skipWaiting();
 });
 
-self.addEventListener("activate", e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => k !== CACHE ? caches.delete(k) : null))));
+self.addEventListener("activate", (e) => {
+  e.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((k) => {
+          if (k !== CACHE) {
+            return caches.delete(k);
+          }
+        })
+      );
+    })
+  );
   self.clients.claim();
 });
 
-self.addEventListener("fetch", e => {
-  e.respondWith(fetch(e.request).then(r => {
-    if (r && r.status === 200) caches.open(CACHE).then(c => c.put(e.request, r.clone()));
-    return r;
-  }).catch(() => caches.match(e.request).then(r => r || new Response("Offline"))));
+self.addEventListener("fetch", (e) => {
+  if (e.request.method !== "GET") return;
+
+  e.respondWith(
+    fetch(e.request)
+      .then((response) => {
+        if (response && response.status === 200) {
+          const responseToCache = response.clone();
+          caches.open(CACHE).then((cache) => {
+            cache.put(e.request, responseToCache);
+          });
+        }
+        return response;
+      })
+      .catch(() => {
+        return caches
+          .match(e.request)
+          .then((response) => response || new Response("Offline"));
+      })
+  );
 });
