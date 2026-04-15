@@ -19,13 +19,19 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   width: 100%;
   height: 100%;
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   background: white;
   color: var(--text-primary);
   position: fixed;
@@ -39,43 +45,109 @@ body {
 .welcome-modal {
   position: fixed;
   inset: 0;
-  background: var(--dark-bg);
-  backdrop-filter: blur(10px);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 50;
   animation: fadeIn 0.5s ease-out;
   padding: 1rem;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .welcome-modal.hidden {
   display: none !important;
 }
 
+/* ========== PARTICLES CONTAINER ========== */
+
+.particles-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255, 255, 255, 0.8),
+    rgba(255, 255, 255, 0.1)
+  );
+  box-shadow:
+    0 0 30px rgba(255, 255, 255, 0.6),
+    inset -2px -2px 5px rgba(0, 0, 0, 0.3);
+  animation: floatParticle 20s infinite ease-in-out;
+  filter: blur(0.5px);
+}
+
+@keyframes floatParticle {
+  0% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 0.2;
+  }
+  25% {
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(-80vh) translateX(80px) scale(0.8);
+    opacity: 0.7;
+  }
+  75% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(-150vh) translateX(-80px) scale(0.5);
+    opacity: 0.1;
+  }
+}
+
+/* ========== WELCOME CARD ========== */
+
 .welcome-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 2px solid rgba(168, 85, 247, 0.3);
   border-radius: 2.5rem;
   padding: 2.5rem;
   max-width: 380px;
   width: 100%;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    0 25px 50px rgba(0, 0, 0, 0.5),
+    0 0 60px rgba(168, 85, 247, 0.3);
   animation: popIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
   max-height: 90vh;
   overflow-y: auto;
+  position: relative;
+  z-index: 10;
+  backdrop-filter: blur(10px);
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes popIn {
-  0% { transform: scale(0.5); opacity: 0; }
-  70% { transform: scale(1.1); }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .progress-dots {
@@ -90,6 +162,7 @@ body {
   height: 6px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.2);
+  transition: all 0.3s;
 }
 
 .dot.active {
@@ -107,31 +180,52 @@ body {
   background: var(--primary-gradient);
   border-radius: 2rem;
   font-size: 3.5rem;
-  box-shadow: 0 20px 50px rgba(168, 85, 247, 0.4);
+  box-shadow: 0 20px 50px rgba(168, 85, 247, 0.6);
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .welcome-title {
   font-size: 1.875rem;
-  font-weight: 700;
+  font-weight: 800;
   text-align: center;
-  color: var(--text-light);
+  background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin-bottom: 1rem;
 }
 
 .about-box {
-  background: rgba(168, 85, 247, 0.1);
-  border: 1px solid rgba(168, 85, 247, 0.2);
+  background: rgba(168, 85, 247, 0.15);
+  border: 1.5px solid rgba(168, 85, 247, 0.3);
   border-radius: 1.5rem;
   padding: 1.5rem;
   margin-bottom: 2rem;
   text-align: center;
   font-size: 0.875rem;
   line-height: 1.6;
-  color: var(--text-light);
+  color: #f1f5f9;
+  backdrop-filter: blur(5px);
 }
 
 .about-box p {
   margin: 0.5rem 0;
+  font-weight: 500;
+}
+
+.about-box p strong {
+  color: #a855f7;
+  font-weight: 700;
 }
 
 .form-group {
@@ -141,9 +235,9 @@ body {
 .form-group label {
   display: block;
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
   margin-bottom: 0.5rem;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -155,39 +249,46 @@ body {
   cursor: pointer;
   font-size: 0.95rem;
   text-transform: none;
-  color: var(--text-light);
+  color: #f1f5f9;
   font-weight: 500;
 }
 
 .form-input {
   width: 100%;
-  background: var(--input-bg);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
   border-radius: 1.25rem;
   padding: 1rem;
-  color: var(--text-light);
+  color: #f1f5f9;
   font-size: 1rem;
   -webkit-appearance: none;
   appearance: none;
   transition: all 0.3s;
+  font-family: inherit;
+  font-weight: 500;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: var(--primary);
-  background: rgba(168, 85, 247, 0.1);
+  border-color: #a855f7;
+  background: rgba(168, 85, 247, 0.15);
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.2);
+}
+
+.form-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .form-input option {
-  background: var(--card-bg);
-  color: var(--text-light);
+  background: #1e293b;
+  color: #f1f5f9;
 }
 
 .form-group input[type="checkbox"] {
   width: 1.25rem;
   height: 1.25rem;
   cursor: pointer;
-  accent-color: var(--primary);
+  accent-color: #a855f7;
 }
 
 /* ========== DAYS PICKER ========== */
@@ -211,28 +312,38 @@ body {
   transition: all 0.3s;
 }
 
+.day-checkbox:hover {
+  background: rgba(168, 85, 247, 0.1);
+  border-color: rgba(168, 85, 247, 0.3);
+}
+
 .day-checkbox input {
   cursor: pointer;
   width: 1.25rem;
   height: 1.25rem;
-  accent-color: var(--primary);
+  accent-color: #a855f7;
 }
 
 .day-checkbox span {
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   color: rgba(255, 255, 255, 0.7);
   text-transform: uppercase;
+  transition: color 0.3s;
 }
 
 .day-checkbox:has(input:checked) {
-  background: rgba(168, 85, 247, 0.2);
-  border-color: var(--primary);
+  background: rgba(168, 85, 247, 0.25);
+  border-color: #a855f7;
+}
+
+.day-checkbox:has(input:checked) span {
+  color: #a855f7;
 }
 
 .btn-gradient {
   width: 100%;
-  background: var(--primary-gradient);
+  background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
   color: white;
   border: none;
   padding: 1rem;
@@ -246,10 +357,11 @@ body {
   justify-content: center;
   gap: 0.5rem;
   transition: all 0.3s;
+  margin-top: 0.5rem;
 }
 
 .btn-gradient:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   box-shadow: 0 20px 50px rgba(168, 85, 247, 0.6);
 }
 
@@ -257,10 +369,10 @@ body {
   transform: scale(0.98);
 }
 
-.hidden {
-  display: none !important;
+.btn-gradient:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
-
 /* ========== MAIN APP ========== */
 
 .app-container {
@@ -336,7 +448,11 @@ body {
 /* ========== WIDGET CALENDAR ========== */
 
 .widget-calendar {
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(236, 72, 153, 0.1));
+  background: linear-gradient(
+    135deg,
+    rgba(168, 85, 247, 0.1),
+    rgba(236, 72, 153, 0.1)
+  );
   border: 2px solid var(--primary);
   border-radius: 1.5rem;
   padding: 1.5rem;
@@ -411,7 +527,11 @@ body {
 }
 
 .member-card {
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(236, 72, 153, 0.1));
+  background: linear-gradient(
+    135deg,
+    rgba(168, 85, 247, 0.1),
+    rgba(236, 72, 153, 0.1)
+  );
   border: 1.5px solid #e2e8f0;
   border-radius: 1.5rem;
   padding: 1.5rem;
@@ -463,7 +583,11 @@ body {
 /* ========== TODAY CARD ========== */
 
 .today-card {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.1),
+    rgba(16, 185, 129, 0.05)
+  );
   border: 2px solid var(--success);
   border-radius: 2.5rem;
   padding: 2.5rem;
@@ -707,7 +831,11 @@ body {
 }
 
 .stat-card {
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(236, 72, 153, 0.1));
+  background: linear-gradient(
+    135deg,
+    rgba(168, 85, 247, 0.1),
+    rgba(236, 72, 153, 0.1)
+  );
   border: 1.5px solid #e2e8f0;
   padding: 1.5rem;
   border-radius: 1.5rem;
@@ -818,8 +946,7 @@ body {
 .notification-display {
   position: fixed;
   top: 1rem;
-  left: 0;
-  right: 0;
+  right: 1rem;
   z-index: 200;
   pointer-events: none;
 }
@@ -924,5 +1051,118 @@ body {
 
   .widget-calendar {
     margin-bottom: 1.5rem;
+  }
+
+  .welcome-card {
+    padding: 2rem 1.5rem;
+    border-radius: 1.5rem;
+  }
+
+  .gradient-icon {
+    width: 5rem;
+    height: 5rem;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .welcome-title {
+    font-size: 1.5rem;
+  }
+
+  .form-input {
+    padding: 0.875rem;
+    font-size: 0.95rem;
+  }
+
+  .btn-gradient {
+    padding: 0.875rem;
+    font-size: 1rem;
+  }
+
+  .section-title {
+    font-size: 1rem;
+  }
+
+  .header-content h1 {
+    font-size: 1.5rem;
+  }
+
+  .content {
+    padding: 1rem;
+    padding-bottom: 5rem;
+  }
+
+  .notification-box {
+    max-width: calc(100vw - 2rem);
+  }
+
+  .notification-display {
+    right: 0.5rem;
+    left: 0.5rem;
+    top: 0.5rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .welcome-card {
+    padding: 1.5rem 1rem;
+  }
+
+  .progress-dots {
+    margin-bottom: 1.5rem;
+  }
+
+  .gradient-icon {
+    width: 4rem;
+    height: 4rem;
+    font-size: 2rem;
+  }
+
+  .welcome-title {
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .about-box {
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.75rem;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-group label {
+    font-size: 0.7rem;
+  }
+
+  .day-checkbox {
+    padding: 0.35rem;
+  }
+
+  .day-checkbox span {
+    font-size: 0.65rem;
+  }
+
+  .person-name {
+    font-size: 2rem;
+  }
+
+  .week-card {
+    width: 80px;
+    padding: 0.75rem 0.35rem;
+  }
+
+  .week-card-date {
+    font-size: 1.5rem;
+  }
+
+  .stat-number {
+    font-size: 1.5rem;
+  }
+
+  .stat-name {
+    font-size: 0.65rem;
   }
 }
